@@ -1,0 +1,49 @@
+# Vivace — Netlify configuration
+# Static site in /public, API in /netlify/functions (Netlify Functions v2), data in Netlify Blobs.
+
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+  command = "npm run check"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  node_bundler = "esbuild"
+
+[dev]
+  publish = "public"
+  port = 8888
+
+# ---------- pretty URLs ----------
+# /shop, /news, /about ... are served from shop.html, news.html ... automatically.
+[[redirects]]
+  from = "/product/*"
+  to = "/product.html"
+  status = 200
+
+[[redirects]]
+  from = "/post/*"
+  to = "/article.html"
+  status = 200
+
+# ---------- headers ----------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "SAMEORIGIN"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, must-revalidate"

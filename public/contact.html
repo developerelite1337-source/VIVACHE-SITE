@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ka">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>კონტაქტი · VIVACHE</title>
+  <meta name="description" content="VIVACHE — საკანცელარიო, წიგნები, საჩუქრები და სათამაშოები ერთ ფერად მაღაზიაში. ონლაინ შეკვეთა და მიწოდება საქართველოში.">
+  <meta name="theme-color" content="#FFF8F0">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="კონტაქტი · VIVACHE">
+  <meta property="og:description" content="VIVACHE — საკანცელარიო, წიგნები, საჩუქრები და სათამაშოები ერთ ფერად მაღაზიაში. ონლაინ შეკვეთა და მიწოდება საქართველოში.">
+  <meta property="og:locale" content="ka_GE">
+  <link rel="icon" href="/assets/img/brand/favicon-64.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/img/brand/apple-touch-icon.png">
+  <meta property="og:image" content="/assets/img/brand/banner.webp">
+  <!-- motion is opt-in: hidden-until-revealed only when motion is allowed; removed if GSAP never loads -->
+  <script>(function(d){if(!matchMedia('(prefers-reduced-motion: reduce)').matches){d.classList.add('motion');setTimeout(function(){if(!window.gsap)d.classList.remove('motion');},3000);}try{if(localStorage.getItem('vv_lang')==='en')d.lang='en';}catch(e){}})(document.documentElement);</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Noto+Sans+Georgian:wght@400..900&family=Noto+Sans:wght@400..900&display=swap">
+  <link rel="stylesheet" href="/assets/css/site.css">
+</head>
+<body data-page="contact">
+  <a class="skip-link" href="#main">მთავარ შინაარსზე გადასვლა</a>
+  <div id="app-header"></div>
+  <main id="main">
+  <div id="contact-hero"></div>
+  <section class="section--tight"><div class="wrap c-grid">
+    <div class="c-info" id="contact-info"></div>
+    <form class="form-card" id="contact-form" name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" data-anim="reveal">
+      <input type="hidden" name="form-name" value="contact">
+      <p class="hp"><label>Don't fill this out: <input name="bot-field"></label></p>
+      <h2 class="h-3" data-i18n="ct_title">დაგვიკავშირდი</h2>
+      <div class="row2">
+        <label class="field"><span data-i18n="co_name">სახელი და გვარი</span><input name="name" required autocomplete="name"></label>
+        <label class="field"><span data-i18n="co_phone">ტელეფონი</span><input name="phone" type="tel" autocomplete="tel"></label>
+      </div>
+      <label class="field"><span data-i18n="email">ელ-ფოსტა</span><input name="email" type="email" autocomplete="email"></label>
+      <label class="field"><span data-i18n="ct_msg">შეტყობინება</span><textarea name="message" rows="5" required></textarea></label>
+      <button class="btn btn--accent btn--wide" type="submit"><span data-i18n="ct_send">გაგზავნა</span></button>
+    </form>
+  </div></section>
+  </main>
+  <div id="app-footer"></div>
+  <noscript><p style="padding:24px;text-align:center">VIVACHE-ს საიტს JavaScript სჭირდება.</p></noscript>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+  <script src="/assets/js/i18n.js" defer></script>
+  <script src="/assets/js/core.js" defer></script>
+  <script src="/assets/js/pages.js" defer></script>
+  <script src="/assets/js/newyear.js" defer></script>
+</body>
+</html>

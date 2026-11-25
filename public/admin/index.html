@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ka">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>მართვის პანელი · Vivace</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Noto+Sans+Georgian:wght@400..800&family=Noto+Sans:wght@400..800&display=swap">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+  <div id="app"><div class="ad-boot"><div><i style="--c:#FF3D7F;--i:0"></i><i style="--c:#FFB020;--i:1"></i><i style="--c:#2F6BFF;--i:2"></i><i style="--c:#22C55E;--i:3"></i></div></div></div>
+
+  <dialog class="ad-dialog" id="ad-confirm">
+    <form method="dialog">
+      <h3 data-confirm-title>დარწმუნებული ხარ?</h3>
+      <p data-confirm-text>ეს მოქმედება ვერ გაუქმდება.</p>
+      <div class="ad-dialog__btns">
+        <button value="cancel" class="ad-btn ad-btn--ghost">გაუქმება</button>
+        <button value="ok" class="ad-btn ad-btn--danger" data-confirm-ok>წაშლა</button>
+      </div>
+    </form>
+  </dialog>
+  <div class="ad-toast" id="ad-toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" defer></script>
+  <script src="/admin/admin.js" defer></script>
+</body>
+</html>
