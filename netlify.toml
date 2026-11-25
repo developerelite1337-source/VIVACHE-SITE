@@ -28,6 +28,11 @@
   to = "/article.html"
   status = 200
 
+[[redirects]]
+  from = "/admin.html"
+  to = "/admin/"
+  status = 301
+
 # ---------- headers ----------
 [[headers]]
   for = "/*"
@@ -47,3 +52,8 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=3600, must-revalidate"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"

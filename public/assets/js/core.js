@@ -134,7 +134,7 @@
 
   /* ---------------- wishlist (localStorage, like akzonobelgeo /wishlist) ---------------- */
   VV.wish = {
-    ids: function () { try { return JSON.parse(localStorage.getItem('vv_wish')) || []; } catch (e) { return []; } },
+    ids: function () { try { var v = JSON.parse(localStorage.getItem('vv_wish')); return Array.isArray(v) ? v.filter(function (x) { return typeof x === 'string'; }) : []; } catch (e) { return []; } },
     has: function (id) { return VV.wish.ids().indexOf(id) > -1; },
     toggle: function (id) {
       var ids = VV.wish.ids(), i = ids.indexOf(id), on = i < 0;
@@ -204,7 +204,11 @@
   /* ---------------- cart (localStorage) ---------------- */
   var CART_KEY = 'vv_cart';
   VV.cart = {
-    items: function () { try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; } catch (e) { return []; } },
+    items: function () {
+      var v = null; try { v = JSON.parse(localStorage.getItem(CART_KEY)); } catch (e) { /* */ }
+      if (!Array.isArray(v)) { if (v != null) localStorage.removeItem(CART_KEY); return []; } // old VIVACHE app stored an object here
+      return v.filter(function (x) { return x && typeof x.id === 'string' && +x.qty > 0; });
+    },
     save: function (items) { localStorage.setItem(CART_KEY, JSON.stringify(items)); VV.cart.render(); },
     add: function (id, variant, qty) {
       var items = VV.cart.items(), key = id + '|' + (variant || '');
@@ -669,7 +673,12 @@
       document.getElementById('main').innerHTML = '<section class="section"><div class="wrap empty-state"><h1 class="h-2">Vivace</h1><p class="lead">' + VV.t('error') + '</p><p class="muted">API: /api/catalog — ' + VV.esc(e.message) + '</p></div></section>';
       return;
     }
-    header(); footer(); bind(); VV.cart.render(); VV.wish.render(); VV.weather();
+    // remove the old VIVACHE app's service worker + caches (it served stale files)
+    if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function (rs) { rs.forEach(function (r) { r.unregister(); }); }).catch(function () {});
+    if (window.caches) caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); }).catch(function () {});
+    var safe = function (fn) { try { fn(); } catch (e) { console.error(e); } };
+    header(); footer();
+    safe(bind); safe(VV.cart.render); safe(VV.wish.render); safe(VV.weather);
     if (VV.data.settings.auth) VV.acc.me().then(VV.acc.badge);
     if (VV.newyear) try { VV.newyear(); } catch (e) { console.error(e); }
     var page = document.body.getAttribute('data-page') || 'home';
