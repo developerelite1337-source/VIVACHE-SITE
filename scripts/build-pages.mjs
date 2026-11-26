@@ -1,7 +1,10 @@
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 // Regenerates the HTML page shells in /public (they only load the shared CSS/JS). Usage: npm run pages
 const out = process.argv[2] || fileURLToPath(new URL('../public', import.meta.url));
+// ?v=<content hash> on CSS/JS → browsers load the new version right after a deploy
+const v = (p) => { try { return p + '?v=' + createHash('md5').update(readFileSync(out + p)).digest('hex').slice(0, 8); } catch { return p; } };
 const DESC = 'VIVACHE — საკანცელარიო, წიგნები, საჩუქრები და სათამაშოები ერთ ფერად მაღაზიაში. ონლაინ შეკვეთა და მიწოდება საქართველოში.';
 
 const contactMain = `<div id="contact-hero"></div>
@@ -31,6 +34,8 @@ const pages = [
   ['article', 'article', 'სიახლე', ''],
   ['about', 'page', 'ჩვენს შესახებ', 'about'],
   ['delivery', 'page', 'მიწოდება და დაბრუნება', 'delivery'],
+  ['terms', 'page', 'წესები და პირობები', 'terms'],
+  ['page', 'page', 'VIVACHE', ''],
   ['contact', 'contact', 'კონტაქტი', ''],
   ['checkout', 'checkout', 'შეკვეთის გაფორმება', ''],
   ['404', 'notfound', 'გვერდი ვერ მოიძებნა', ''],
@@ -60,7 +65,7 @@ for (const [file, page, title, key] of pages) {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Noto+Sans+Georgian:wght@400..900&family=Noto+Sans:wght@400..900&display=swap">
-  <link rel="stylesheet" href="/assets/css/site.css">
+  <link rel="stylesheet" href="${v('/assets/css/site.css')}">
 </head>
 <body data-page="${page}"${key ? ` data-key="${key}"` : ''}>
   <a class="skip-link" href="#main">მთავარ შინაარსზე გადასვლა</a>
@@ -72,10 +77,7 @@ for (const [file, page, title, key] of pages) {
   <noscript><p style="padding:24px;text-align:center">VIVACHE-ს საიტს JavaScript სჭირდება.</p></noscript>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
-  <script src="/assets/js/i18n.js" defer></script>
-  <script src="/assets/js/core.js" defer></script>
-  <script src="/assets/js/pages.js" defer></script>
-  <script src="/assets/js/newyear.js" defer></script>${page === 'account' ? '\n  <script src="/assets/js/account.js" defer></script>' : ''}
+${['i18n', 'core', 'pages', 'account', 'music', 'newyear'].map((n) => '  <script src="' + v('/assets/js/' + n + '.js') + '" defer></script>').join('\n')}
 </body>
 </html>
 `;

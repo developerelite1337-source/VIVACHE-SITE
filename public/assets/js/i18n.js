@@ -37,7 +37,7 @@ window.VV_I18N = {
     co_guest: 'სტუმრად შეკვეთა', co_or_login: 'ან შედი ანგარიშზე — ქეშბექი, შეკვეთების ისტორია და სწრაფი შეკვეთა', co_login_needed: 'შეკვეთისთვის შედი ანგარიშზე ან დარეგისტრირდი.',
     co_min: 'მინიმალური შეკვეთა', co_iban: 'გადარიცხვის რეკვიზიტები', co_proof: 'ატვირთე გადარიცხვის ქვითარი', co_proof_t: 'ფოტო ან PDF (2.5 MB-მდე) — შეკვეთას სწრაფად დავადასტურებთ.', co_proof_ok: 'ქვითარი მიღებულია',
     co_my_orders: 'ჩემი შეკვეთები', co_cashback: 'ქეშბექით', copied_iban: 'IBAN დაკოპირდა',
-    ny_music: 'საახალწლო მუსიკა', ny_until: 'ახალ წლამდე', ny_happy: 'გილოცავთ ახალ წელს!', ny_days: 'დღე',
+    ny_music: 'მუსიკა', terms: 'წესები და პირობები', author: 'საიტის ავტორი', top_badge: 'ტოპ', top_title: 'პროდუქცია', music_play: 'მუსიკის ჩართვა', music_pause: 'მუსიკის გაჩერება', music_next: 'შემდეგი', no_photo: 'ფოტო მალე', ny_until: 'ახალ წლამდე', ny_happy: 'გილოცავთ ახალ წელს!', ny_days: 'დღე',
   },
   en: {
     skip: 'Skip to content', menu: 'Menu', close: 'Close', search: 'Search', cart: 'Cart', language: 'Language',
@@ -76,6 +76,6 @@ window.VV_I18N = {
     co_guest: 'Order as guest', co_or_login: 'or sign in — cashback, order history and faster checkout', co_login_needed: 'Please sign in or register to order.',
     co_min: 'Minimum order', co_iban: 'Bank transfer details', co_proof: 'Upload the transfer receipt', co_proof_t: 'Photo or PDF (up to 2.5 MB) — we confirm faster.', co_proof_ok: 'Receipt received',
     co_my_orders: 'My orders', co_cashback: 'With cashback', copied_iban: 'IBAN copied',
-    ny_music: 'New Year music', ny_until: 'Until New Year', ny_happy: 'Happy New Year!', ny_days: 'days',
+    ny_music: 'Music', terms: 'Terms & conditions', author: 'Website by', top_badge: 'Top', top_title: 'Products', music_play: 'Play music', music_pause: 'Pause music', music_next: 'Next', no_photo: 'Photo soon', ny_until: 'Until New Year', ny_happy: 'Happy New Year!', ny_days: 'days',
   },
 };

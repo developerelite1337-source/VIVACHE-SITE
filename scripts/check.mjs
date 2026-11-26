@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 
 const must = [
   'public/index.html', 'public/shop.html', 'public/product.html', 'public/checkout.html', 'public/contact.html', 'public/404.html',
-  'public/assets/css/site.css', 'public/assets/js/core.js', 'public/assets/js/pages.js', 'public/assets/js/i18n.js', 'public/assets/js/account.js', 'public/assets/js/newyear.js', 'public/account.html', 'public/wishlist.html',
+  'public/assets/css/site.css', 'public/assets/js/core.js', 'public/assets/js/pages.js', 'public/assets/js/i18n.js', 'public/assets/js/account.js', 'public/assets/js/newyear.js', 'public/account.html', 'public/wishlist.html', 'public/terms.html', 'public/page.html', 'public/assets/js/music.js',
   'public/admin/index.html', 'public/admin/admin.js', 'public/admin/admin.css',
   'netlify/functions/api.mjs', 'netlify/functions/img.mjs', 'netlify/functions/lib/supa.mjs',
 ];

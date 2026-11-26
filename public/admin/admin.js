@@ -27,7 +27,7 @@
     'chevron-right': 'M9 6l6 6-6 6', logout: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10', print: 'M7 9V3h10v6M7 17H4v-6h16v6h-3M7 14h10v7H7z', download: 'M12 4v12M7 11l5 5 5-5M4 20h16',
     upload: 'M12 20V8M7 13l5-5 5 5M4 4h16', check: 'M5 12l5 5 9-10', eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'eye-off': 'M3 3l18 18M10.6 6.1A9.6 9.6 0 0 1 12 6c6.5 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.6 6.6A17 17 0 0 0 2 12s3.5 6 10 6a9.4 9.4 0 0 0 4.4-1.1',
     tree: 'M12 2l5 7h-3l4 6h-4l4 6H6l4-6H6l4-6H7zM12 21v2', link: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
-    globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18', phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2',
+    music: 'M9 18V6l11-2v12M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z', globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18', phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2',
   };
   const icon = (n, cls = 'icon--sm') => `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n] || ''}"/></svg>`;
 
@@ -771,20 +771,239 @@
     };
   };
 
-  /* ---------- pages ---------- */
-  const PAGES = { about: 'ჩვენს შესახებ', delivery: 'მიწოდება და დაბრუნება' };
-  V.page = (key) => {
-    const pg = D().pages[key] || { title: {}, lead: {}, text: {} };
-    if (!PAGES[key]) return notFound();
+  /* ---------- pages: about / delivery / terms + own pages (/p/<slug>) ---------- */
+  const PAGES = { about: 'ჩვენს შესახებ', delivery: 'მიწოდება და დაბრუნება', terms: 'წესები და პირობები' };
+  const pageUrl = (key) => (PAGES[key] ? '/' + key : '/p/' + key);
+  const slugify = (s) => String(s || '').toLowerCase().trim()
+    .replace(/[ა-ჰ]/g, (ch) => ({ ა: 'a', ბ: 'b', გ: 'g', დ: 'd', ე: 'e', ვ: 'v', ზ: 'z', თ: 't', ი: 'i', კ: 'k', ლ: 'l', მ: 'm', ნ: 'n', ო: 'o', პ: 'p', ჟ: 'zh', რ: 'r', ს: 's', ტ: 't', უ: 'u', ფ: 'p', ქ: 'k', ღ: 'gh', ყ: 'k', შ: 'sh', ჩ: 'ch', ც: 'ts', ძ: 'dz', წ: 'ts', ჭ: 'ch', ხ: 'kh', ჯ: 'j', ჰ: 'h' }[ch] || ''))
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  V.pagesList = () => {
+    const pages = D().pages || {};
+    const keys = [...Object.keys(PAGES), ...Object.keys(pages).filter((k) => !PAGES[k])];
+    const inMenu = (k) => (D().settings.menu || []).some((m) => m.url === pageUrl(k) && !m.hidden);
     return {
-      title: PAGES[key], crumbs: 'გვერდები / ' + PAGES[key],
-      actions: `<a class="ad-btn" href="/${key}" target="_blank">${icon('arrow-up-right')} საიტზე</a><button class="ad-btn ad-btn--accent" type="submit" form="f">შენახვა</button>`,
-      html: `<form id="f" class="ad-edit" novalidate><div class="ad-edit__main"><section class="ad-card">${trField('title', 'სათაური', pg.title)}${trField('lead', 'შესავალი', pg.lead, { type: 'text', rows: 2 })}${trField('text', 'ტექსტი', pg.text, { type: 'rich' })}</section></div>
-        <aside class="ad-edit__side"><section class="ad-card"><h3>სურათი</h3>${imageField('image', pg.image)}</section>
+      title: 'გვერდები', actions: `<button type="button" class="ad-btn ad-btn--accent" data-new-page>${icon('plus')} ახალი გვერდი</button>`,
+      html: `<div class="ad-flash ad-flash--info">${icon('info')} <span>ახალი გვერდი (მაგ.: „ეს საინტერესოა“, „თავსატეხები“) იხსნება მისამართზე <b>/p/სახელი</b>. შექმნისას შეგიძლია პირდაპირ მთავარ მენიუშიც დაამატო — მენიუს რიგი და სახელები: <a class="ad-link" href="#/menu">მთავარი მენიუ</a>.</span></div>
+        <section class="ad-card"><table class="ad-table"><thead><tr><th>გვერდი</th><th>მისამართი</th><th>მენიუში</th><th></th></tr></thead><tbody>
+        ${keys.map((k) => `<tr><td><a class="ad-link" href="#/pages/${esc(k)}"><b>${esc(T(pages[k]?.title) || PAGES[k] || k)}</b></a>${PAGES[k] ? ' <span class="ad-tag ad-tag--muted">ძირითადი</span>' : ''}</td>
+          <td><a class="ad-link" href="${pageUrl(k)}" target="_blank" rel="noopener">${pageUrl(k)}</a></td><td>${inMenu(k) ? '✓' : '<span class="muted">—</span>'}</td>
+          <td style="text-align:right;white-space:nowrap"><a class="ad-btn ad-btn--sm" href="#/pages/${esc(k)}">რედაქტირება</a>${PAGES[k] ? '' : ` <button type="button" class="ad-btn ad-btn--sm ad-btn--danger-ghost" data-del-page="${esc(k)}">${icon('trash')}</button>`}</td></tr>`).join('')}
+        </tbody></table></section>
+        <dialog class="ad-dialog" id="np"><form method="dialog" class="ad-form" id="npf"><h3>ახალი გვერდი</h3>
+          ${field('title', 'სათაური', '', { ph: 'ეს საინტერესოა', required: true })}${field('slug', 'მისამართი (ლათინურად)', '', { ph: 'saintereso', hint: 'გვერდი გაიხსნება: /p/<b>მისამართი</b>' })}
+          ${sw('menu', 'მთავარ მენიუში დამატება', true)}
+          <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="ad-btn" data-np-cancel>გაუქმება</button><button class="ad-btn ad-btn--accent" type="submit">შექმნა</button></div></form></dialog>`,
+      mount(el) {
+        const dlg = $('#np', el), f = $('#npf', el), slug = f.elements.namedItem('slug');
+        $('[data-new-page]', document).addEventListener('click', () => { f.reset(); dlg.showModal(); });
+        $('[data-np-cancel]', el).addEventListener('click', () => dlg.close());
+        f.elements.namedItem('title').addEventListener('input', (e) => { if (!slug.dataset.touched) slug.value = slugify(e.target.value); });
+        slug.addEventListener('input', () => { slug.dataset.touched = '1'; });
+        f.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const title = f.elements.namedItem('title').value.trim(), key = slugify(slug.value || title) || ('page-' + Date.now().toString(36));
+          if (!title) { toast('სათაური სავალდებულოა', true); return; }
+          if ((D().pages || {})[key] || PAGES[key]) { toast('ასეთი მისამართი უკვე არსებობს', true); return; }
+          try {
+            A.data.pages = await api('PUT', 'pages/' + key, { title: { ka: title, en: '' }, lead: {}, text: { ka: '<p>' + esc(title) + '</p>', en: '' } });
+            if (f.elements.namedItem('menu').checked) await saveSettings({ menu: [...(D().settings.menu || []), { id: 'm' + Date.now().toString(36), label: { ka: title, en: '' }, url: '/p/' + key, mega: false, hidden: false }] }, 'გვერდი შეიქმნა და მენიუში დაემატა');
+            else toast('გვერდი შეიქმნა');
+            dlg.close(); go('#/pages/' + key);
+          } catch (x) { fail(x); }
+        });
+        el.addEventListener('click', async (e) => {
+          const d = e.target.closest('[data-del-page]'); if (!d) return;
+          const k = d.dataset.delPage;
+          if (!(await confirmBox(`გვერდი „${T(D().pages[k]?.title) || k}“ წაიშლება (მენიუდანაც).`))) return;
+          try {
+            A.data.pages = await api('DELETE', 'pages/' + k);
+            const menu = (D().settings.menu || []).filter((m) => m.url !== '/p/' + k);
+            if (menu.length !== (D().settings.menu || []).length) await saveSettings({ menu }, 'წაიშალა'); else toast('წაიშალა');
+            route();
+          } catch (x) { fail(x); }
+        });
+      },
+    };
+  };
+  V.page = (key) => {
+    const pg = D().pages[key];
+    if (!pg && !PAGES[key]) return notFound();
+    const p = pg || { title: {}, lead: {}, text: {} }, name = PAGES[key] || T(p.title) || key;
+    return {
+      title: name, crumbs: `<a href="#/pages">გვერდები</a> / ${esc(name)}`,
+      actions: `<a class="ad-btn" href="${pageUrl(key)}" target="_blank">${icon('arrow-up-right')} საიტზე</a><button class="ad-btn ad-btn--accent" type="submit" form="f">შენახვა</button>`,
+      html: `<form id="f" class="ad-edit" novalidate><div class="ad-edit__main"><section class="ad-card">${trField('title', 'სათაური', p.title)}${trField('lead', 'შესავალი', p.lead, { type: 'text', rows: 2 })}${trField('text', 'ტექსტი', p.text, { type: 'rich' })}</section></div>
+        <aside class="ad-edit__side"><section class="ad-card"><h3>სურათი</h3>${imageField('image', p.image)}</section>
+        <section class="ad-card"><p class="ad-hint" style="margin:0">მისამართი: <a class="ad-link" href="${pageUrl(key)}" target="_blank">${pageUrl(key)}</a><br>მენიუში ჩვენება: <a class="ad-link" href="#/menu">მთავარი მენიუ</a></p></section>
         ${key === 'about' ? '<section class="ad-card"><p class="ad-hint" style="margin:0">რიცხვების ზოლი (პროდუქტი, ბრენდი, წელი, მაღაზია) — <a class="ad-link" href="#/settings">პარამეტრები → რიცხვები</a></p></section>' : ''}</aside></form>`,
       mount(el) {
         const f = $('#f', el); bindForm(f);
         f.addEventListener('submit', async (e) => { e.preventDefault(); try { A.data.pages = await api('PUT', 'pages/' + key, collect(f)); A.dirty = false; toast('შენახულია'); } catch (x) { fail(x); } });
+      },
+    };
+  };
+
+  /* ---------- main menu ---------- */
+  function linkOptions() {
+    const pages = D().pages || {};
+    return [['/shop', 'პროდუქცია (მაღაზია)'], ['/news', 'სიახლეები'], ['/contact', 'კონტაქტი'], ['/about', 'ჩვენს შესახებ'], ['/delivery', 'მიწოდება'], ['/terms', 'წესები და პირობები'], ['/shop?sale=1', 'ფასდაკლებები'], ['/wishlist', 'რჩეულები'],
+      ...Object.keys(pages).filter((k) => !PAGES[k]).map((k) => ['/p/' + k, T(pages[k].title) || k]),
+      ...D().categories.filter((c) => !c.parent).map((c) => ['/shop?cat=' + c.id, 'კატეგორია: ' + T(c.name)])];
+  }
+  V.menu = () => {
+    const menu = D().settings.menu || [];
+    const row = (m) => `<li class="ad-mrow${m.hidden ? ' is-off' : ''}" data-id="${esc(m.id)}"><span class="ad-mrow__grip" title="გადაათრიე">⋮⋮</span>
+      <input type="text" data-k="ka" value="${esc(T(m.label) || m.label?.ka || '')}" placeholder="სახელი" aria-label="სახელი">
+      <input type="text" data-k="en" value="${esc(m.label?.en || '')}" placeholder="English" aria-label="English">
+      <input type="text" data-k="url" value="${esc(m.url || '')}" list="menu-links" placeholder="/p/..." aria-label="ბმული">
+      <label class="ad-check" title="ჩამოსაშლელი მენიუ კატეგორიებით"><input type="checkbox" data-k="mega"${m.mega ? ' checked' : ''}> <span>კატეგორიები</span></label>
+      <label class="ad-check"><input type="checkbox" data-k="hidden"${m.hidden ? ' checked' : ''}> <span>დამალვა</span></label>
+      <button type="button" class="ad-btn ad-btn--sm ad-btn--danger-ghost" data-del-m title="წაშლა">${icon('trash')}</button></li>`;
+    return {
+      title: 'მთავარი მენიუ', actions: `<a class="ad-btn" href="/" target="_blank">${icon('arrow-up-right')} საიტზე</a><button class="ad-btn ad-btn--accent" type="button" data-save-menu>შენახვა</button>`,
+      html: `<div class="ad-flash ad-flash--info">${icon('info')} <span>საიტის ზედა მენიუ: გადაათრიე ⋮⋮ რიგის შესაცვლელად, შეცვალე სახელი, ბმული, დამალე ან წაშალე. „კატეგორიები“ — ამ პუნქტზე გამოჩნდება LIBRA-ს კატეგორიების ჩამოსაშლელი მენიუ. ახალი გვერდისთვის (მაგ. „თავსატეხები“) ჯერ შექმენი <a class="ad-link" href="#/pages">გვერდები</a>-ში.</span></div>
+        <section class="ad-card"><ul class="ad-menu-list" id="ml">${menu.map(row).join('')}</ul>
+          <datalist id="menu-links">${linkOptions().map(([u, l]) => `<option value="${esc(u)}">${esc(l)}</option>`).join('')}</datalist>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="ad-btn ad-btn--sm" data-add-m>${icon('plus')} პუნქტის დამატება</button>
+          <a class="ad-btn ad-btn--sm ad-btn--ghost" href="#/pages">${icon('file')} ახალი გვერდის შექმნა</a></div></section>`,
+      mount(el) {
+        const ml = $('#ml', el);
+        if (window.Sortable) Sortable.create(ml, { handle: '.ad-mrow__grip', animation: 160, onEnd: dirty });
+        el.addEventListener('input', dirty);
+        el.addEventListener('click', (e) => {
+          if (e.target.closest('[data-add-m]')) { ml.insertAdjacentHTML('beforeend', row({ id: 'm' + Date.now().toString(36), label: { ka: '', en: '' }, url: '' })); $('li:last-child input', ml).focus(); dirty(); }
+          const d = e.target.closest('[data-del-m]'); if (d) { d.closest('li').remove(); dirty(); }
+        });
+        $('[data-save-menu]', document).addEventListener('click', async () => {
+          const items = $$('li', ml).map((li) => {
+            const g = (k) => $(`[data-k="${k}"]`, li);
+            return { id: li.dataset.id, label: { ka: g('ka').value.trim(), en: g('en').value.trim() }, url: g('url').value.trim() || '/', mega: g('mega').checked, hidden: g('hidden').checked };
+          }).filter((m) => m.label.ka || m.label.en);
+          let seen = false; items.forEach((m) => { if (m.mega) { if (seen) m.mega = false; seen = true; } });
+          try { await saveSettings({ menu: items }); route(); } catch (x) { fail(x); }
+        });
+      },
+    };
+  };
+
+  /* ---------- home page sections ---------- */
+  const SECTION_INFO = {
+    hero: ['ქავერი (სლაიდერი)', '#/hero', false], band: ['მოძრავი ზოლი', '#/band', false],
+    top: ['პროდუქცია · ტოპ გაყიდვადი', '', true], directions: ['კატეგორიები (ფოტოებით)', '#/categories', true],
+    hot: ['რჩეული პროდუქცია (ჩანართებით)', '#/products', true], sale: ['ფასდაკლებული პროდუქცია', '', true],
+    features: ['უპირატესობები (მიწოდება, საჩუქარი…)', '', false], news: ['სიახლეები', '#/news', true],
+    cashback: ['ქეშბექ ბარათი', '#/settings', false], brands: ['ბრენდების ზოლი', '#/brands', true], text: ['ტექსტური ბლოკი', '', true],
+  };
+  V.sections = () => {
+    const list = D().settings.sections || [];
+    const two = (k, label, v) => `<div class="ad-field"><span>${label}</span><div class="ad-row2"><input type="text" data-k="${k}.ka" value="${esc(v?.ka ?? (typeof v === 'string' ? v : ''))}" placeholder="ქართულად"><input type="text" data-k="${k}.en" value="${esc(v?.en || '')}" placeholder="English"></div></div>`;
+    const card = (s) => {
+      const [name, link, texts] = SECTION_INFO[s.key] || [s.key, '', false];
+      const counted = ['top', 'hot', 'sale'].includes(s.key);
+      return `<li class="ad-sec${s.enabled === false ? ' is-off' : ''}" data-key="${esc(s.key)}"><div class="ad-sec__head"><span class="ad-mrow__grip" title="გადაათრიე">⋮⋮</span>
+        <label class="ad-check ad-check--switch"><input type="checkbox" data-k="enabled"${s.enabled !== false ? ' checked' : ''}> <span><b>${esc(name)}</b></span></label>
+        <span class="ad-sec__acts">${link ? `<a class="ad-btn ad-btn--sm ad-btn--ghost" href="${link}">შიგთავსი →</a>` : ''}${texts || counted ? '<button type="button" class="ad-btn ad-btn--sm" data-open>ტექსტები</button>' : ''}${s.key === 'text' ? `<button type="button" class="ad-btn ad-btn--sm ad-btn--danger-ghost" data-del-s>${icon('trash')}</button>` : ''}</span></div>
+        <div class="ad-sec__body" hidden>
+          ${s.key === 'top' ? '<p class="ad-hint">საიტზე გაყიდული პროდუქცია ავტომატურად ხდება „ტოპ გაყიდვადი“ (LIBRA-ს გაყიდვებიც ითვლება) და ★ ნიშნით პირველი ჩანს. სანამ გაყიდვები არ არის — ჩანს შერეული პროდუქცია.</p>' : ''}
+          ${texts ? two('eyebrow', 'ზედა წარწერა', s.eyebrow) + two('title', 'სათაური', s.title) + two('lead', 'ტექსტი', s.lead) + `<div class="ad-row2">${two('btn', 'ღილაკი', s.btn)}<label class="ad-field"><span>ღილაკის ბმული</span><input type="text" data-k="url" value="${esc(s.url || '')}" list="menu-links" placeholder="/shop"></label></div>` : ''}
+          ${counted ? `<label class="ad-field"><span>რამდენი პროდუქტი</span><input type="number" min="4" max="48" data-k="count" value="${esc(s.count || (s.key === 'hot' ? 8 : 12))}"></label>` : ''}
+        </div></li>`;
+    };
+    return {
+      title: 'მთავარი გვერდის სექციები', actions: `<a class="ad-btn" href="/" target="_blank">${icon('arrow-up-right')} საიტზე</a><button class="ad-btn ad-btn--accent" type="button" data-save-sec>შენახვა</button>`,
+      html: `<div class="ad-flash ad-flash--info">${icon('info')} <span>მთავარი გვერდი ზემოდან ქვემოთ: გადაათრიე ⋮⋮ რიგისთვის, ჩართე/გამორთე, შეცვალე სათაურები და ტექსტები. ცარიელი ტექსტი = სტანდარტული.</span></div>
+        <section class="ad-card"><ul class="ad-sec-list" id="sl">${list.map(card).join('')}</ul>
+          <datalist id="menu-links">${linkOptions().map(([u, l]) => `<option value="${esc(u)}">${esc(l)}</option>`).join('')}</datalist>
+          <div style="display:flex;gap:8px;margin-top:12px"><button type="button" class="ad-btn ad-btn--sm" data-add-text>${icon('plus')} ტექსტური ბლოკის დამატება</button>
+          ${list.some((s) => s.key === 'top') ? '' : `<button type="button" class="ad-btn ad-btn--sm" data-add-top>${icon('plus')} პროდუქციის ბადე</button>`}</div></section>`,
+      mount(el) {
+        const sl = $('#sl', el);
+        if (window.Sortable) Sortable.create(sl, { handle: '.ad-mrow__grip', animation: 160, onEnd: dirty });
+        el.addEventListener('input', dirty);
+        el.addEventListener('click', (e) => {
+          const o = e.target.closest('[data-open]'); if (o) { const b = $('.ad-sec__body', o.closest('li')); b.hidden = !b.hidden; }
+          const d = e.target.closest('[data-del-s]'); if (d) { d.closest('li').remove(); dirty(); }
+          if (e.target.closest('[data-add-text]')) { sl.insertAdjacentHTML('beforeend', card({ key: 'text', enabled: true })); $('li:last-child .ad-sec__body', sl).hidden = false; dirty(); }
+          if (e.target.closest('[data-add-top]')) { sl.insertAdjacentHTML('afterbegin', card({ key: 'top', enabled: true, count: 12 })); dirty(); }
+        });
+        $('[data-save-sec]', document).addEventListener('click', async () => {
+          const sections = $$('li.ad-sec', sl).map((li) => {
+            const s = { key: li.dataset.key };
+            $$('[data-k]', li).forEach((i) => {
+              if (i.type === 'checkbox') s[i.dataset.k] = i.checked;
+              else if (i.dataset.k === 'count') s.count = Math.max(4, Math.min(48, +i.value || 12));
+              else setPath(s, i.dataset.k, i.value.trim());
+            });
+            return s;
+          });
+          try { await saveSettings({ sections }); route(); } catch (x) { fail(x); }
+        });
+      },
+    };
+  };
+
+  /* ---------- music ---------- */
+  const AUDIO_EXT = { mp3: 'audio/mpeg', m4a: 'audio/mp4', ogg: 'audio/ogg', aac: 'audio/aac', wav: 'audio/wav' };
+  V.music = () => {
+    const mu = D().settings.music || {}, tracks = mu.tracks || [];
+    const row = (t) => `<li class="ad-mrow" data-id="${esc(t.id)}" data-src="${esc(t.src)}"><span class="ad-mrow__grip" title="გადაათრიე">⋮⋮</span>
+      <button type="button" class="ad-btn ad-btn--sm" data-play title="მოსმენა">▶</button>
+      <input type="text" data-k="title" value="${esc(t.title || '')}" placeholder="სიმღერის სახელი" aria-label="სახელი">
+      <a class="ad-link ad-mrow__src" href="${esc(t.src)}" target="_blank" rel="noopener" title="${esc(t.src)}">${esc(t.src.split('/').pop().slice(0, 28))}</a>
+      <label class="ad-check"><input type="checkbox" data-k="hidden"${t.hidden ? ' checked' : ''}> <span>გამორთვა</span></label>
+      <button type="button" class="ad-btn ad-btn--sm ad-btn--danger-ghost" data-del-t title="წაშლა">${icon('trash')}</button></li>`;
+    return {
+      title: 'მუსიკა', actions: `<button class="ad-btn ad-btn--accent" type="button" data-save-mu>შენახვა</button>`,
+      html: `<div class="ad-flash ad-flash--info">${icon('info')} <span>მუსიკა უკრავს მთელ საიტზე და გვერდიდან გვერდზე გადასვლისას <b>არ წყდება</b>. ბრაუზერები ხმას რთავენ მხოლოდ მომხმარებლის პირველი დაჭერის შემდეგ — მუსიკა დაიწყება საიტზე პირველივე დაჭერისას (სტუმარს შეუძლია გამორთოს 🎵 ღილაკით, ქვედა კუთხეში).</span></div>
+        <div class="ad-grid2"><section class="ad-card"><h3>ფლეილისტი</h3>
+          <ul class="ad-menu-list" id="tl">${tracks.map(row).join('') || ''}</ul>${tracks.length ? '' : '<p class="ad-hint" data-empty>შენი სიმღერები ჯერ არ არის — ატვირთე MP3 ან დაამატე ბმული.</p>'}
+          <label class="ad-drop" data-drop>${icon('plus', '')}<input type="file" accept="audio/*,.mp3,.m4a,.ogg,.wav" multiple data-audio><span>მუსიკის ატვირთვა<br><small>MP3, M4A, OGG · თითო ფაილი 5.8 MB-მდე (128 kbps MP3 ≈ 6 წუთი)</small></span></label>
+          <div class="ad-row2" style="margin-top:10px"><input type="url" data-url placeholder="ან ბმული: https://…/song.mp3"><button type="button" class="ad-btn" data-add-url>${icon('link')} ბმულით დამატება</button></div>
+          <p class="ad-hint">გამოიყენე მხოლოდ მუსიკა, რომლის გამოყენების უფლებაც გაქვს (საკუთარი, ლიცენზირებული ან უფასო ლიცენზიით).</p></section>
+        <section class="ad-card"><h3>პარამეტრები</h3><form class="ad-form" id="muf">
+          ${sw('enabled', 'მუსიკა საიტზე', mu.enabled !== false)}${sw('autoplay', 'ავტომატური ჩართვა', mu.autoplay !== false, 'იწყება სტუმრის პირველივე დაჭერით / შეხებით')}
+          ${sw('builtin', '🎄 საახალწლო მელოდიები', mu.builtin !== false, 'Jingle Bells, We Wish You…, Deck the Halls, Silent Night — ფაილების გარეშე, ფლეილისტის ბოლოს')}
+          ${sw('shuffle', 'შემთხვევითი რიგი', mu.shuffle)}
+          <label class="ad-field"><span>ხმის დონე <b data-vol>${Math.round((mu.volume ?? 0.6) * 100)}%</b></span><input type="range" name="volume" min="0.1" max="1" step="0.05" value="${mu.volume ?? 0.6}"></label></form></section></div>`,
+      mount(el) {
+        const tl = $('#tl', el), f = $('#muf', el); let player = null;
+        if (window.Sortable) Sortable.create(tl, { handle: '.ad-mrow__grip', animation: 160, onEnd: dirty });
+        el.addEventListener('input', (e) => { dirty(); if (e.target.name === 'volume') $('[data-vol]', el).textContent = Math.round(e.target.value * 100) + '%'; });
+        const add = (src, title) => { const em = $('[data-empty]', el); if (em) em.remove(); tl.insertAdjacentHTML('beforeend', row({ id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), src, title })); dirty(); };
+        el.addEventListener('click', (e) => {
+          const p = e.target.closest('[data-play]');
+          if (p) {
+            const src = p.closest('li').dataset.src;
+            if (player && player.dataset.src === src && !player.paused) { player.pause(); p.textContent = '▶'; return; }
+            if (player) player.pause(); $$('[data-play]', el).forEach((b) => { b.textContent = '▶'; });
+            player = new Audio(src); player.dataset.src = src; player.volume = +f.elements.namedItem('volume').value; player.play().catch(fail); p.textContent = '❚❚';
+          }
+          const d = e.target.closest('[data-del-t]'); if (d) { d.closest('li').remove(); dirty(); }
+          if (e.target.closest('[data-add-url]')) {
+            const u = $('[data-url]', el).value.trim();
+            if (!/^https?:\/\/\S+$/i.test(u)) { toast('ჩაწერე სრული ბმული (https://…)', true); return; }
+            add(u, decodeURIComponent(u.split('/').pop().replace(/\.[a-z0-9]+(\?.*)?$/i, '')).replace(/[-_]+/g, ' ')); $('[data-url]', el).value = '';
+          }
+        });
+        $('[data-audio]', el).addEventListener('change', async (e) => {
+          const drop = e.target.closest('.ad-drop'); drop.classList.add('is-busy');
+          try {
+            for (const file of [...e.target.files]) {
+              const ext = (file.name.split('.').pop() || '').toLowerCase();
+              const type = AUDIO_EXT[ext] || file.type;
+              if (!type || !type.startsWith('audio/')) throw new Error(file.name + ' — მუსიკის ფაილი არ არის');
+              if (file.size > 5.8 * 1024 * 1024) throw new Error(file.name + ' — 5.8 MB-ზე დიდია. შეკუმშე 128 kbps MP3-ად ან დაამატე ბმულით');
+              const url = (await api('POST', 'upload', undefined, new Blob([file], { type }))).url;
+              add(url, file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '));
+            }
+            toast('აიტვირთა — არ დაგავიწყდეს „შენახვა“');
+          } catch (x) { fail(x); } finally { drop.classList.remove('is-busy'); e.target.value = ''; }
+        });
+        $('[data-save-mu]', document).addEventListener('click', async () => {
+          const x = collect(f); x.volume = +x.volume;
+          x.tracks = $$('li', tl).map((li) => ({ id: li.dataset.id, src: li.dataset.src, title: $('[data-k="title"]', li).value.trim() || 'VIVACHE', hidden: $('[data-k="hidden"]', li).checked }));
+          try { if (player) player.pause(); await saveSettings({ music: x }); route(); } catch (err) { fail(err); }
+        });
       },
     };
   };
@@ -885,7 +1104,7 @@
   V.newyear = () => {
     const ny = D().settings.newyear || {};
     const opts = [['snow', '❄️ თოვლი', 'ნაზი თოვლი მთელ საიტზე'], ['garland', '💡 გირლიანდა', 'მოციმციმე ნათურები მენიუს ქვეშ'], ['santa', '🎅 სანტა კლაუსი', 'სანტა ირმებით ჩრდილოეთიდან მოფრინავს ~40 წამში ერთხელ'],
-      ['elves', '🧝 ელფები', 'ეკრანის კუთხეებიდან იხედებიან და ხელს გიქნევენ (კომპიუტერზე)'], ['music', '🎵 საახალწლო მუსიკა', 'Jingle Bells, We Wish You a Merry Christmas, Deck the Halls, Silent Night — თავისით იცვლება'], ['countdown', '⏳ ახალ წლამდე ტაიმერი', 'ქვედა კუთხეში — დღეები, საათები, წუთები']];
+      ['elves', '🧝 ელფები', 'ეკრანის კუთხეებიდან იხედებიან და ხელს გიქნევენ (კომპიუტერზე)'], ['countdown', '⏳ ახალ წლამდე ტაიმერი', 'ქვედა კუთხეში — დღეები, საათები, წუთები']];
     return {
       title: 'საახალწლო რეჟიმი', actions: `<a class="ad-btn" href="/" target="_blank">${icon('arrow-up-right')} საიტზე</a>`,
       html: `<div class="ad-hello ad-hello--ny"><div><h2>🎄 ახალი წელი საიტზე</h2><p>ერთი ღილაკით ჩართე ან გამორთე მთელი სადღესასწაულო გარემო. ცალკეული ელემენტები ქვემოთ.</p></div>
@@ -893,7 +1112,7 @@
         <div class="ad-grid2"><section class="ad-card"><h3>ელემენტები ${ny.enabled ? '<span class="ad-tag ad-tag--new">ჩართულია</span>' : '<span class="ad-tag ad-tag--muted">გამორთულია</span>'}</h3>
           <form class="ad-form" id="nyf">${opts.map(([k, l, h]) => sw(k, l, ny[k] !== false, h)).join('')}<button class="ad-btn ad-btn--accent" type="submit">შენახვა</button></form></section>
           <section class="ad-card"><h3>რჩევები</h3><ul class="ad-list" style="display:block;padding-left:18px;margin:0;line-height:1.8">
-            <li>მუსიკა ბრაუზერის წესით იწყება მხოლოდ მომხმარებლის დაჭერით — ქვედა კუთხეში 🎵 ღილაკით (ან ელფზე დაჭერით).</li>
+            <li>მუსიკა (საახალწლო მელოდიებიც) იმართება ცალკე: <a class="ad-link" href="#/music">მუსიკა</a>.</li>
             <li>ვისაც მოძრაობა გამორთული აქვს (prefers-reduced-motion), თოვლი და სანტა არ ჩანს.</li>
             <li>ქავერზე დაამატე საახალწლო სლაიდი: <a class="ad-link" href="#/hero">მთავარი გვერდის ქავერი</a> (ფოტო „საახალწლო“ უკვე არის).</li>
             <li>შობის მერე გამორთე ერთი ღილაკით — ყველაფერი ქრება.</li></ul></section></div>`,
@@ -912,7 +1131,6 @@
   const CITIES = [['ბათუმი', 41.6168, 41.6367], ['თბილისი', 41.7151, 44.8271], ['ქუთაისი', 42.2679, 42.6946], ['რუსთავი', 41.5495, 44.9934], ['ზუგდიდი', 42.5088, 41.8709], ['ფოთი', 42.1462, 41.6719], ['ქობულეთი', 41.8214, 41.7792], ['გორი', 41.9842, 44.1158], ['თელავი', 41.9198, 45.4731], ['ზესტაფონი', 42.1100, 43.0322]];
   V.settings = () => {
     const s = D().settings, c = s.contact || {}, sh = s.shop || {}, n = s.numbers || {}, h = s.home || {}, w = s.weather || {}, cb = s.cashback || {};
-    const sections = [['hero', 'ქავერი (სლაიდერი)'], ['band', 'მოძრავი ზოლი'], ['directions', 'კატეგორიები (ფოტოებით)'], ['hot', 'რჩეული პროდუქცია'], ['sale', 'ფასდაკლებული პროდუქცია'], ['features', 'უპირატესობები'], ['news', 'სიახლეები'], ['cashback', 'ქეშბექ ბარათი'], ['brands', 'ბრენდების ზოლი']];
     const libra = D().libra;
     const mapQ = (c.map_coords || '').trim() || c.map_query || T(c.address);
     return {
@@ -936,9 +1154,13 @@
             ${trField('cashback.eyebrow', 'ზედა წარწერა', cb.eyebrow)}${trField('cashback.title', 'სათაური', cb.title)}${trField('cashback.lead', 'ტექსტი', cb.lead, { type: 'text' })}${trField('cashback.btn', 'ღილაკი', cb.btn)}
             <span class="ad-field"><span>ბარათის ფოტო</span></span>${imageField('cashback.image', cb.image)}</section>
         </div><aside class="ad-edit__side">
-          <section class="ad-card"><h3>მთავარი გვერდის სექციები</h3>${sections.map(([k, l]) => sw('home.' + k, l, h[k] !== false)).join('')}</section>
-          <section class="ad-card"><h3>☀️ ამინდის ვიჯეტი</h3>${sw('weather.enabled', 'ჰედერში ჩვენება', w.enabled !== false)}
-            <label class="ad-field"><span>ქალაქი</span><select data-city data-ignore>${CITIES.map(([nm, la, lo]) => `<option value="${nm}|${la}|${lo}"${w.city === nm ? ' selected' : ''}>${nm}</option>`).join('')}</select></label>
+          <section class="ad-card"><h3>მთავარი გვერდი და მენიუ</h3><p class="ad-hint" style="margin:0">სექციების რიგი, ჩართვა და ტექსტები — <a class="ad-link" href="#/sections">სექციები</a><br>ზედა მენიუ — <a class="ad-link" href="#/menu">მთავარი მენიუ</a><br>მუსიკა — <a class="ad-link" href="#/music">მუსიკა</a></p></section>
+          <section class="ad-card"><h3>🖼 პროდუქტის ბარათის ჩარჩო</h3>
+            ${select('cards.frame', 'ჩარჩოს ფერი', [['auto', 'ავტომატური — მოძრავი ზოლის ფერებით'], ['rainbow', 'ფერადი (ცისარტყელა)'], ['pink', 'ვარდისფერი'], ['ocean', 'ლურჯი'], ['sun', 'მზისფერი'], ['mint', 'მწვანე'], ['dark', 'მუქი'], ['custom', 'ჩემი ფერი ↓']], (s.cards || {}).frame || 'auto')}
+            ${field('cards.color', 'ჩემი ფერი', (s.cards || {}).color || '#FF3D7F', { type: 'color' })}
+            <p class="ad-hint" style="margin:0">„ავტომატური“: როცა <a class="ad-link" href="#/band">მოძრავ ზოლს</a> შეუცვლი სტილს (შავი პარასკევი, ფასდაკლება, სიახლე…), ჩარჩოც იმავე ფერებს იღებს.</p></section>
+          <section class="ad-card"><h3>☀️ ამინდის ვიჯეტი</h3>${sw('weather.enabled', 'ჰედერში ჩვენება', w.enabled !== false)}${sw('weather.auto', 'სტუმრის ქალაქის ამინდი', w.auto !== false, 'ავტომატურად ადგენს, საიდან შემოვიდა სტუმარი (ქვეყანა / ქალაქი). ვერ დადგინდა → ქვემოთ არჩეული ქალაქი')}
+            <label class="ad-field"><span>ქალაქი (სტანდარტული)</span><select data-city data-ignore>${CITIES.map(([nm, la, lo]) => `<option value="${nm}|${la}|${lo}"${w.city === nm ? ' selected' : ''}>${nm}</option>`).join('')}</select></label>
             <input type="hidden" name="weather.city" value="${esc(w.city || 'ბათუმი')}"><input type="hidden" name="weather.lat" value="${w.lat ?? 41.6168}"><input type="hidden" name="weather.lon" value="${w.lon ?? 41.6367}">
             <p class="ad-hint">პროგნოზი: Open-Meteo (უფასო, გასაღების გარეშე).</p></section>
           <section class="ad-card"><h3>რიცხვები</h3><p class="ad-hint" style="margin:-8px 0 12px">ცარიელი = ავტომატურად ითვლება</p><div class="ad-row2">${field('numbers.products', 'პროდუქტი', n.products, { type: 'number' })}${field('numbers.brands', 'ბრენდი', n.brands, { type: 'number' })}${field('numbers.years', 'წელი ბაზარზე', n.years, { type: 'number' })}${field('numbers.stores', 'მაღაზია', n.stores, { type: 'number' })}</div></section>
@@ -985,13 +1207,16 @@
     ['brands', 'star', 'ბრენდები', '#22C55E'],
     '— მთავარი გვერდი',
     ['hero', 'image', 'მთავარი გვერდის ქავერი', '#8B5CF6'],
+    ['sections', 'app', 'სექციები (რიგი, ტექსტები)', '#FFB020'],
     ['band', 'swatch', 'მთავარი გვერდის ზოლი', '#14B8A6'],
     ['promo', 'zap', 'აქციები · შავი პარასკევი', '#FFD400', 'bf'],
     ['newyear', 'tree', 'საახალწლო რეჟიმი', '#22C55E', 'ny'],
     '— კონტენტი',
     ['news', 'info', 'სიახლეები', '#F97316'],
-    ['pages/about', 'file', 'ჩვენს შესახებ', '#FF3D7F'],
-    ['pages/delivery', 'file', 'მიწოდება', '#2F6BFF'],
+    ['pages', 'file', 'გვერდები', '#FF3D7F'],
+    '— საიტი',
+    ['menu', 'menu', 'მთავარი მენიუ', '#2F6BFF'],
+    ['music', 'music', 'მუსიკა', '#FF3D7F'],
     ['settings', 'gear', 'პარამეტრები', '#FFFFFF'],
   ];
   function renderNav() {
@@ -1013,6 +1238,7 @@
     $('#app').innerHTML = `<div class="ad"><aside class="ad-side" id="ad-side">
         <a class="ad-logo" href="#/"><img class="ad-logo__img" src="/assets/img/brand/logo.webp" alt="VIVACHE"><span>მართვა</span></a>
         <nav class="ad-nav" id="ad-nav"></nav>
+        <div class="ad-author"><small>პროექტის ავტორი</small><b>ლაშა დიასამიძე</b></div>
         <div class="ad-side__foot"><a href="/" target="_blank" rel="noopener">${icon('arrow-up-right')}<span>საიტის ნახვა</span></a><button type="button" data-logout>${icon('logout')}<span>გასვლა</span></button></div></aside>
       <div class="ad-main"><header class="ad-top"><button type="button" class="ad-burger" aria-label="მენიუ" data-side>${icon('menu', '')}</button>
           <div class="ad-top__title"><div class="ad-crumbs" id="ad-crumbs"></div><h1 id="ad-title"></h1></div><div class="ad-top__actions" id="ad-actions"></div>
@@ -1031,7 +1257,8 @@
     [/^categories$/, V.categories], [/^categories\/(.+)$/, V.category],
     [/^brands$/, V.brands], [/^brands\/(.+)$/, V.brand],
     [/^hero$/, V.heroList], [/^hero\/(.+)$/, V.hero], [/^band$/, V.band], [/^promo$/, V.promo], [/^newyear$/, V.newyear],
-    [/^news$/, V.newsList], [/^news\/(.+)$/, V.news], [/^pages\/(.+)$/, V.page], [/^settings$/, V.settings],
+    [/^news$/, V.newsList], [/^news\/(.+)$/, V.news], [/^pages$/, V.pagesList], [/^pages\/(.+)$/, V.page], [/^settings$/, V.settings],
+    [/^menu$/, V.menu], [/^sections$/, V.sections], [/^music$/, V.music],
   ];
   let routing = 0;
   async function route(keepFocus) {

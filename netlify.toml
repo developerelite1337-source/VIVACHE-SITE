@@ -28,6 +28,12 @@
   to = "/article.html"
   status = 200
 
+# custom pages created in admin → გვერდები (ეს საინტერესოა, თავსატეხები ...)
+[[redirects]]
+  from = "/p/*"
+  to = "/page.html"
+  status = 200
+
 [[redirects]]
   from = "/admin.html"
   to = "/admin/"

@@ -101,16 +101,17 @@
   VV.inStock = function (p) { return p.stock == null || p.stock > 0; };
 
   /* product card (same anatomy as the akzonobel p-card) */
-  VV.card = function (p) {
+  VV.card = function (p, isTop) {
+    if (isTop !== true) isTop = (VV.data.top || []).slice(0, 12).indexOf(p.id) > -1;
     var name = VV.esc(VV.tr(p.name)), d = VV.disc(p), vs = VV.variants(p), color = VV.catColor(p.category_id);
     var price = p.price ? (vs.length > 1 ? '<small>' + VV.t('from') + '</small> ' + VV.money(VV.minPrice(p)) : VV.money(p.price)) : '';
-    var badges = (d ? '<span class="badge badge--sale">−' + d + '%</span>' : '') + (p.isNew ? '<span class="badge badge--new">' + VV.t('new') + '</span>' : '') + (p.age ? '<span class="badge badge--age">' + VV.esc(p.age) + '</span>' : '');
+    var badges = (isTop ? '<span class="badge badge--top">★ ' + VV.t('top_badge') + '</span>' : '') + (d ? '<span class="badge badge--sale">−' + d + '%</span>' : '') + (p.isNew ? '<span class="badge badge--new">' + VV.t('new') + '</span>' : '') + (p.age ? '<span class="badge badge--age">' + VV.esc(p.age) + '</span>' : '');
     var quick = p.price && vs.length < 2 && VV.inStock(p);
     var w = VV.wish.has(p.id);
     return '<article class="p-card' + (VV.inStock(p) ? '' : ' is-out') + '" style="--t:' + color + '" data-anim="item">' +
       '<button type="button" class="wish-btn' + (w ? ' is-on' : '') + '" data-wish="' + VV.esc(p.id) + '" aria-pressed="' + w + '" aria-label="' + VV.t('wish_add') + '">' + VV.icon('heart') + '</button>' +
-      '<div class="p-card__media"><span class="p-card__blob"></span>' +
-        (VV.img(p) ? '<img src="' + VV.esc(VV.img(p)) + '" alt="' + name + '" loading="lazy" decoding="async">' : '<span class="ph">' + VV.icon('gift', 'icon--lg') + '</span>') +
+      '<div class="p-card__media">' +
+        (VV.img(p) ? '<img src="' + VV.esc(VV.img(p)) + '" alt="' + name + '" loading="lazy" decoding="async">' : '<span class="ph">' + VV.icon('gift', 'icon--lg') + '<small>' + VV.t('no_photo') + '</small></span>') +
         '<span class="p-card__badges">' + badges + '</span></div>' +
       '<div class="p-card__body">' +
         (p.brand ? '<span class="p-card__brand">' + VV.esc(p.brand) + '</span>' : (VV.cat(p.category_id) ? '<span class="p-card__brand">' + VV.esc(VV.tr(VV.cat(p.category_id).name)) + '</span>' : '')) +
@@ -180,25 +181,50 @@
   VV.weather = function () {
     var w = VV.data.settings.weather || {}, chip = document.getElementById('weather-chip');
     if (!chip || w.enabled === false) return;
-    var key = 'vv_wx_' + w.lat + w.lon, cached = null;
-    try { cached = JSON.parse(sessionStorage.getItem(key)); } catch (e) { /* */ }
-    var draw = function (d) {
-      var cur = d.current, m = wmo(cur.weather_code);
-      chip.hidden = false;
-      chip.querySelector('.wx-chip__btn').innerHTML = '<span class="wx-ico">' + m[1] + '</span><b>' + Math.round(cur.temperature_2m) + '°</b><small>' + VV.esc(w.city || '') + '</small>';
-      var days = d.daily.time.slice(0, 6).map(function (t, i) {
-        var dm = wmo(d.daily.weather_code[i]), dt = new Date(t + 'T12:00');
-        var name = i ? dt.toLocaleDateString(VV.lang === 'ka' ? 'ka-GE' : 'en-GB', { weekday: 'short' }) : VV.t('today');
-        return '<li style="--i:' + i + '"><span>' + VV.esc(name) + '</span><i>' + dm[1] + '</i><b>' + Math.round(d.daily.temperature_2m_max[i]) + '°</b><small>' + Math.round(d.daily.temperature_2m_min[i]) + '°</small>' +
-          (d.daily.precipitation_probability_max ? '<em>' + (d.daily.precipitation_probability_max[i] || 0) + '%</em>' : '') + '</li>';
-      }).join('');
-      chip.querySelector('.wx-pop').innerHTML = '<div class="wx-now" style="--wx:' + (cur.is_day ? '#FFB020' : '#4F46E5') + '"><span class="wx-now__ico">' + m[1] + '</span><div><b>' + Math.round(cur.temperature_2m) + '°C</b><span>' + VV.esc(m[VV.lang === 'ka' ? 2 : 3]) + '</span><small>' + VV.esc(w.city || '') + ' · ' + VV.t('wind') + ' ' + Math.round(cur.wind_speed_10m) + ' კმ/სთ</small></div></div>' +
-        '<h4>' + VV.t('weather_5') + '</h4><ul class="wx-days">' + days + '</ul><p class="wx-src">Open-Meteo</p>';
+    var show = function (lat, lon, city) {
+      var key = 'vv_wx_' + Number(lat).toFixed(2) + Number(lon).toFixed(2), cached = null;
+      try { cached = JSON.parse(sessionStorage.getItem(key)); } catch (e) { /* */ }
+      var draw = function (d) {
+        var cur = d.current, m = wmo(cur.weather_code);
+        chip.hidden = false;
+        chip.querySelector('.wx-chip__btn').innerHTML = '<span class="wx-ico">' + m[1] + '</span><b>' + Math.round(cur.temperature_2m) + '°</b><small>' + VV.esc(city || '') + '</small>';
+        var days = d.daily.time.slice(0, 6).map(function (t, i) {
+          var dm = wmo(d.daily.weather_code[i]), dt = new Date(t + 'T12:00');
+          var name = i ? dt.toLocaleDateString(VV.lang === 'ka' ? 'ka-GE' : 'en-GB', { weekday: 'short' }) : VV.t('today');
+          return '<li style="--i:' + i + '"><span>' + VV.esc(name) + '</span><i>' + dm[1] + '</i><b>' + Math.round(d.daily.temperature_2m_max[i]) + '°</b><small>' + Math.round(d.daily.temperature_2m_min[i]) + '°</small>' +
+            (d.daily.precipitation_probability_max ? '<em>' + (d.daily.precipitation_probability_max[i] || 0) + '%</em>' : '') + '</li>';
+        }).join('');
+        chip.querySelector('.wx-pop').innerHTML = '<div class="wx-now" style="--wx:' + (cur.is_day ? '#FFB020' : '#4F46E5') + '"><span class="wx-now__ico">' + m[1] + '</span><div><b>' + Math.round(cur.temperature_2m) + '°C</b><span>' + VV.esc(m[VV.lang === 'ka' ? 2 : 3]) + '</span><small>' + VV.esc(city || '') + ' · ' + VV.t('wind') + ' ' + Math.round(cur.wind_speed_10m) + ' კმ/სთ</small></div></div>' +
+          '<h4>' + VV.t('weather_5') + '</h4><ul class="wx-days">' + days + '</ul><p class="wx-src">Open-Meteo</p>';
+      };
+      if (cached && Date.now() - cached.t < 30 * 60 * 1000) return draw(cached.d);
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=6')
+        .then(function (r) { return r.json(); }).then(function (d) { if (!d.current) return; sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), d: d })); draw(d); })
+        .catch(function () { /* weather is optional */ });
     };
-    if (cached && Date.now() - cached.t < 30 * 60 * 1000) return draw(cached.d);
-    fetch('https://api.open-meteo.com/v1/forecast?latitude=' + w.lat + '&longitude=' + w.lon + '&current=temperature_2m,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=6')
-      .then(function (r) { return r.json(); }).then(function (d) { if (!d.current) return; sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), d: d })); draw(d); })
-      .catch(function () { /* weather is optional */ });
+    var fallback = function () { show(w.lat, w.lon, w.city); };
+    if (w.auto === false) return fallback();
+    var g = null;
+    try { g = JSON.parse(sessionStorage.getItem('vv_geo')); } catch (e) { /* */ }
+    var use = function (geo) { if (geo && geo.lat != null && geo.lon != null) show(geo.lat, geo.lon, geo.city || geo.country || w.city); else fallback(); };
+    if (g) return use(g);
+    fetch('/api/geo').then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (geo) { if (geo) sessionStorage.setItem('vv_geo', JSON.stringify(geo)); use(geo); })
+      .catch(fallback);
+  };
+
+  /* ---------------- product card frame colour (follows the top strip, admin can override) ---------------- */
+  var FRAMES = {
+    rainbow: 'linear-gradient(90deg,#FF3D7F,#FFB020,#22C55E,#2F6BFF,#8B5CF6)',
+    blackfriday: 'linear-gradient(90deg,#111,#FFD400,#111)', sale: 'linear-gradient(90deg,#C8102E,#FF3D7F)',
+    dark: 'linear-gradient(90deg,#15171A,#4A4E55)', pink: 'linear-gradient(90deg,#FF3D7F,#8B5CF6)',
+    ocean: 'linear-gradient(90deg,#2F6BFF,#14B8A6)', sun: 'linear-gradient(90deg,#FFB020,#F97316)', mint: 'linear-gradient(90deg,#22C55E,#14B8A6)',
+  };
+  VV.applyFrame = function () {
+    var c = VV.data.settings.cards || {}, pr = VV.data.settings.promo || {}, key = c.frame || 'auto', val;
+    if (key === 'auto') key = pr.enabled === false ? 'rainbow' : ({ news: 'rainbow', blackfriday: 'blackfriday', sale: 'sale', default: 'dark' }[pr.style] || 'rainbow');
+    val = key === 'custom' && /^#[0-9a-f]{3,8}$/i.test(c.color || '') ? 'linear-gradient(' + c.color + ',' + c.color + ')' : (FRAMES[key] || FRAMES.rainbow);
+    root.style.setProperty('--frame', val);
   };
 
   /* ---------------- cart (localStorage) ---------------- */
@@ -313,6 +339,7 @@
     if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { visible = e[0].isIntersecting; }).observe(lane);
     function wrap() { if (w > 0) x = ((x % w) + w) % w - w; }
     function frame(t) {
+      if (!lane.isConnected) return;                                 // page changed → stop this loop
       var dt = Math.min(64, t - last) / 1000; last = t;
       if (visible) {
         if (!drag && !(hover && lane.hasAttribute('data-hover-pause'))) x += speed * dt;
@@ -369,7 +396,7 @@
       return '<div class="mega__group" style="--t:' + (c.color || '#FF3D7F') + '"><a class="mega__title" href="/shop?cat=' + c.id + '"><span class="mega__ic">' + VV.esc(c.icon || '•') + '</span>' + VV.esc(VV.tr(c.name)) + '</a>' +
         '<ul class="mega__list">' + VV.children(c.id).map(function (s) { return '<li><a href="/shop?cat=' + s.id + '">' + VV.esc(VV.tr(s.name)) + '</a></li>'; }).join('') + '</ul></div>';
     }).join('');
-    var navLink = function (href, label, act) { return '<li class="nav__item"><a class="nav__link" href="' + href + '"' + (act ? ' aria-current="page"' : '') + '>' + label + '</a></li>'; };
+    var menu = (VV.data.settings.menu || []).filter(function (m) { return !m.hidden && (VV.tr(m.label) || m.mega); });
     mega += '<div class="mega__foot"><a class="btn btn--accent btn--sm" href="/shop">' + VV.t('all_products') + ' ' + VV.icon('arrow-right', 'icon--sm') + '</a><a class="btn btn--ghost btn--sm" href="/shop?sale=1">' + VV.t('sale') + '</a></div>';
     var popular = VV.data.products.filter(function (p) { return p.hot; }).slice(0, 4).map(function (p) { return '<a class="chip" href="' + VV.productUrl(p) + '">' + VV.esc(VV.tr(p.name)) + '</a>'; }).join('');
 
@@ -380,10 +407,11 @@
           '<button class="tool-btn burger" type="button" data-drawer-open="menu-drawer" aria-label="' + VV.t('menu') + '">' + VV.icon('menu') + '</button>' +
           '<a class="site-logo" href="/" aria-label="' + VV.t('home') + '">' + logo() + '</a>' +
           '<nav class="nav" aria-label="' + VV.t('menu') + '"><ul class="nav__list">' +
-            '<li class="nav__item"><a class="nav__link" href="/shop"' + (path.indexOf('/shop') === 0 || path.indexOf('/product') === 0 ? ' aria-current="page"' : '') + ' aria-haspopup="true">' + VV.t('products') + ' ' + VV.icon('chevron-down') + '</a><div class="mega mega--' + Math.min(top.length, 5) + '">' + mega + '</div></li>' +
-            navLink('/about', VV.t('about'), path.indexOf('/about') === 0) +
-            navLink('/news', VV.t('news'), path.indexOf('/news') === 0 || path.indexOf('/post') === 0) +
-            navLink('/contact', VV.t('contact'), path.indexOf('/contact') === 0) +
+            menu.map(function (m) {
+              var label = VV.esc(VV.tr(m.label) || VV.t('products')), href = VV.esc(m.url || '/shop');
+              if (m.mega) return '<li class="nav__item"><a class="nav__link" href="' + href + '" data-nav="' + href + '" aria-haspopup="true">' + label + ' ' + VV.icon('chevron-down') + '</a><div class="mega mega--' + Math.min(top.length, 5) + '">' + mega + '</div></li>';
+              return '<li class="nav__item"><a class="nav__link" href="' + href + '" data-nav="' + href + '"' + (/^https?:/.test(m.url || '') ? ' target="_blank" rel="noopener"' : '') + '>' + label + '</a></li>';
+            }).join('') +
           '</ul></nav>' +
           '<div class="header-tools">' +
             '<div class="wx-chip" id="weather-chip" hidden><button class="wx-chip__btn" type="button" data-toggle="wx-pop" aria-expanded="false" aria-label="' + VV.t('weather') + '"></button><div class="wx-pop" id="wx-pop"></div></div>' +
@@ -410,14 +438,12 @@
             return '<a class="m-cat" style="--t:' + (c.color || '#FF3D7F') + '" href="/shop?cat=' + c.id + '"><span>' + VV.esc(c.icon || '•') + '</span><b>' + VV.esc(VV.tr(c.name)) + '</b></a>';
           }).join('') + '</div>' +
           '<ul class="m-nav">' +
-            '<li><a href="/shop">' + VV.t('all_products') + VV.icon('chevron-right') + '</a></li>' +
+            menu.map(function (m) { return '<li><a href="' + VV.esc(m.url || '/shop') + '">' + VV.esc(VV.tr(m.label) || VV.t('products')) + VV.icon('chevron-right') + '</a></li>'; }).join('') +
             (VV.data.settings.auth ? '<li><a href="/account">' + VV.t('account') + VV.icon('chevron-right') + '</a></li>' : '') +
             '<li><a href="/wishlist">' + VV.t('wishlist') + VV.icon('chevron-right') + '</a></li>' +
             '<li><a href="/shop?sale=1">' + VV.t('sale') + ' 🔥' + VV.icon('chevron-right') + '</a></li>' +
-            '<li><a href="/news">' + VV.t('news') + VV.icon('chevron-right') + '</a></li>' +
-            '<li><a href="/about">' + VV.t('about') + VV.icon('chevron-right') + '</a></li>' +
             '<li><a href="/delivery">' + VV.t('delivery') + VV.icon('chevron-right') + '</a></li>' +
-            '<li><a href="/contact">' + VV.t('contact') + VV.icon('chevron-right') + '</a></li>' +
+            '<li><a href="/terms">' + VV.t('terms') + VV.icon('chevron-right') + '</a></li>' +
           '</ul>' +
           '<button class="btn btn--ghost btn--sm" type="button" data-lang>' + VV.icon('globe', 'icon--sm') + (VV.lang === 'ka' ? ' English' : ' ქართული') + '</button>' +
           '</div></div></div>' +
@@ -440,16 +466,16 @@
         '<div class="wrap footer-grid">' +
           '<div class="footer-brand">' + logo('logo-word--light') + '<p>' + VV.esc(VV.tr(s.site.tagline)) + '</p><p class="muted-l">' + VV.t('made') + '</p><div class="socs">' + soc + '</div></div>' +
           '<div><h4>' + VV.t('f_shop') + '</h4><ul>' + VV.topCats().map(function (t) { return '<li><a href="/shop?cat=' + t.id + '">' + VV.esc(VV.tr(t.name)) + '</a></li>'; }).join('') + '<li><a href="/shop?sale=1">' + VV.t('sale') + '</a></li></ul></div>' +
-          '<div><h4>' + VV.t('f_help') + '</h4><ul><li><a href="/delivery">' + VV.t('delivery') + '</a></li><li><a href="/about">' + VV.t('about') + '</a></li><li><a href="/news">' + VV.t('news') + '</a></li><li><a href="/contact">' + VV.t('contact') + '</a></li></ul></div>' +
+          '<div><h4>' + VV.t('f_help') + '</h4><ul><li><a href="/delivery">' + VV.t('delivery') + '</a></li><li><a href="/about">' + VV.t('about') + '</a></li><li><a href="/news">' + VV.t('news') + '</a></li><li><a href="/contact">' + VV.t('contact') + '</a></li><li><a href="/terms">' + VV.t('terms') + '</a></li></ul></div>' +
           '<div><h4>' + VV.t('contact') + '</h4><ul class="footer-contact">' +
             (c.phone ? '<li>' + VV.icon('phone', 'icon--sm') + '<a href="tel:' + VV.esc(c.phone.replace(/\s/g, '')) + '">' + VV.esc(c.phone) + '</a></li>' : '') +
             (c.email ? '<li>' + VV.icon('mail', 'icon--sm') + '<a href="mailto:' + VV.esc(c.email) + '">' + VV.esc(c.email) + '</a></li>' : '') +
             (VV.tr(c.address) ? '<li>' + VV.icon('pin', 'icon--sm') + '<a href="' + VV.map().link + '" target="_blank" rel="noopener">' + VV.esc(VV.tr(c.address)) + '</a></li>' : '') +
-            (c.whatsapp ? '<li>' + VV.icon('whatsapp', 'icon--sm') + '<a href="https://wa.me/' + VV.esc(String(c.whatsapp).replace(/D/g, '')) + '" target="_blank" rel="noopener">WhatsApp</a></li>' : '') +
+            (c.whatsapp ? '<li>' + VV.icon('whatsapp', 'icon--sm') + '<a href="https://wa.me/' + VV.esc(String(c.whatsapp).replace(/\D/g, '')) + '" target="_blank" rel="noopener">WhatsApp</a></li>' : '') +
             (VV.tr(c.hours) ? '<li>' + VV.icon('clock', 'icon--sm') + '<span>' + VV.esc(VV.tr(c.hours)) + '</span></li>' : '') +
           '</ul></div>' +
         '</div>' +
-        '<div class="wrap footer-bottom"><span>© ' + y + ' ' + VV.esc(s.site.name || 'Vivace') + '. ' + VV.t('rights') + '</span><span class="footer-dots">' + COLORS.slice(0, 5).map(function (col) { return '<i style="background:' + col + '"></i>'; }).join('') + '</span></div>' +
+        '<div class="wrap footer-bottom"><span>© ' + y + ' ' + VV.esc(s.site.name || 'VIVACHE') + '. ' + VV.t('rights') + '</span><span class="footer-author">' + VV.t('author') + ': <b>ლაშა დიასამიძე</b></span><span class="footer-dots">' + COLORS.slice(0, 5).map(function (col) { return '<i style="background:' + col + '"></i>'; }).join('') + '</span></div>' +
       '</footer>' +
       '<div class="toast" id="toast" role="status" aria-live="polite">' + VV.icon('check', 'icon--sm') + '<span></span></div>';
   }
@@ -529,18 +555,66 @@
       };
       tick(); setInterval(tick, 1000);
     }
-    // soft page fade on internal navigation
+    // soft navigation between pages (no reload → music, cart drawer and header stay alive)
     document.addEventListener('click', function (e) {
       var a = e.target.closest('a[href]');
-      if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
+      if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target === '_blank' || a.hasAttribute('download') || a.hasAttribute('data-reload')) return;
       var href = a.getAttribute('href');
-      if (!href || href[0] !== '/' || href.indexOf('/#') === 0 || href.indexOf('/admin') === 0) return;
-      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      e.preventDefault(); document.body.classList.add('is-leaving');
-      setTimeout(function () { location.href = href; }, 220);
+      if (!href || href[0] !== '/' || href.indexOf('//') === 0) return;
+      var u = new URL(href, location.href);
+      if (/^\/(admin|img|api|assets)(\/|$)/.test(u.pathname) || /\.(pdf|zip|png|jpe?g|webp|mp3)$/i.test(u.pathname)) return;
+      if (u.pathname === location.pathname && u.search === location.search && u.hash) return;   // same page anchor
+      e.preventDefault();
+      VV.navigate(u.pathname + u.search + u.hash);
     });
-    window.addEventListener('pageshow', function () { document.body.classList.remove('is-leaving'); });
+    document.addEventListener('submit', function (e) {
+      var fm = e.target;
+      if (!fm.matches || !fm.matches('form[role=search]')) return;
+      e.preventDefault();
+      VV.navigate((fm.getAttribute('action') || '/shop') + '?' + new URLSearchParams(new FormData(fm)).toString());
+    });
+    window.addEventListener('popstate', function () { VV.navigate(location.pathname + location.search + location.hash, false); });
   }
+
+  /* ---------------- router ---------------- */
+  var leaving = [];
+  VV.onLeave = function (fn) { leaving.push(fn); };
+  VV.route = function (pathname) {
+    var p = String(pathname || '/').replace(/\.html$/, '').replace(/\/+$/, '') || '/';
+    if (p === '/' || p === '/index') return ['home'];
+    if (p === '/product' || p.indexOf('/product/') === 0) return ['product'];
+    if (p === '/article' || p.indexOf('/post/') === 0) return ['article'];
+    var simple = { '/shop': 'shop', '/news': 'news', '/contact': 'contact', '/checkout': 'checkout', '/account': 'account', '/wishlist': 'wishlist', '/404': 'notfound' };
+    if (simple[p]) return [simple[p]];
+    if (p === '/about' || p === '/delivery' || p === '/terms') return ['page', p.slice(1)];
+    var m = p.match(/^\/p\/([a-z0-9-]+)$/i);
+    if (m) return ['page', m[1].toLowerCase()];
+    return ['notfound'];
+  };
+  VV.navigate = function (href, push) {
+    if (push !== false) history.pushState({ vv: 1 }, '', href);
+    leaving.splice(0).forEach(function (fn) { try { fn(); } catch (e) { /* */ } });
+    if (window.ScrollTrigger) window.ScrollTrigger.getAll().forEach(function (t) { t.kill(); });
+    closeDrawers();
+    var sp = document.getElementById('search-panel'); if (sp) sp.classList.remove('is-open');
+    var u = new URL(href, location.href), r = VV.route(u.pathname);
+    document.body.setAttribute('data-page', r[0]);
+    if (r[1]) document.body.setAttribute('data-key', r[1]); else document.body.removeAttribute('data-key');
+    document.getElementById('main').innerHTML = '';
+    VV.renderPage();
+    if (u.hash) { var el = document.getElementById(u.hash.slice(1)); if (el) { setTimeout(function () { el.scrollIntoView({ behavior: 'smooth' }); }, 80); return; } }
+    window.scrollTo(0, 0);
+  };
+  VV.renderPage = function () {
+    var page = document.body.getAttribute('data-page') || 'home';
+    try { (VV.pages[page] || VV.pages.notfound)(); } catch (e) { console.error(e); }
+    var path = location.pathname;
+    document.querySelectorAll('[data-nav]').forEach(function (a) {
+      var h = a.getAttribute('data-nav'), on = h !== '/' && (path === h || path.indexOf(h + '/') === 0 || (h === '/shop' && path.indexOf('/product/') === 0) || (h === '/news' && path.indexOf('/post/') === 0));
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    VV.motion();
+  };
 
   VV.search = function (q) {
     q = q.toLowerCase();
@@ -634,7 +708,7 @@
         el.addEventListener('pointerleave', function () { tx(0); ty(0); });
       });
       // colourful cursor: the arrow changes colour as the mouse travels (akzonobel motion.js idea)
-      (function () {
+      if (!VV._cursor) (VV._cursor = 1) && (function () {
         var cache = {}, cur = '', idx = 0, travel = 0, lx = 0, ly = 0, raf = 0, want = COLORS[0];
         function uri(svg) { return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")'; }
         function make(c) {
@@ -677,14 +751,18 @@
     if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function (rs) { rs.forEach(function (r) { r.unregister(); }); }).catch(function () {});
     if (window.caches) caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); }).catch(function () {});
     var safe = function (fn) { try { fn(); } catch (e) { console.error(e); } };
+    safe(VV.applyFrame);
     header(); footer();
     safe(bind); safe(VV.cart.render); safe(VV.wish.render); safe(VV.weather);
+    if (VV.music) safe(VV.music.init);
     if (VV.data.settings.auth) VV.acc.me().then(VV.acc.badge);
     if (VV.newyear) try { VV.newyear(); } catch (e) { console.error(e); }
-    var page = document.body.getAttribute('data-page') || 'home';
-    try { (VV.pages[page] || VV.pages.notfound)(); } catch (e) { console.error(e); }
+    // the HTML file decides the first page; the router keeps it consistent for /p/<slug> pages
+    var r0 = VV.route(location.pathname);
+    if (r0[0] === 'page' && r0[1]) document.body.setAttribute('data-key', r0[1]);
+    history.replaceState({ vv: 1 }, '', location.href);
+    VV.renderPage();
     document.body.classList.add('is-ready');
-    VV.motion();
   }
   // deferred scripts run while readyState is "interactive" and before DOMContentLoaded: wait for pages.js + GSAP
   if (document.readyState === 'complete') boot(); else document.addEventListener('DOMContentLoaded', boot);

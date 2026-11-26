@@ -13,7 +13,7 @@
   function sortProducts(list) {
     return list.slice().sort(function (a, b) { return (b.hot - a.hot) || ((a.sort || 0) - (b.sort || 0)) || ((b.popularity || 0) - (a.popularity || 0)) || String(b.created).localeCompare(String(a.created)); });
   }
-  function grid(list) { return '<div class="p-grid">' + list.map(VV.card).join('') + '</div>'; }
+  function grid(list) { return '<div class="p-grid">' + list.map(function (p) { return VV.card(p); }).join('') + '</div>'; }
   function sectionHead(eyebrow, title, lead, link) {
     return '<div class="section__head" data-anim="reveal"><div><span class="eyebrow">' + e(eyebrow) + '</span><h2 class="h-1">' + e(title) + '</h2>' + (lead ? '<p class="lead">' + e(lead) + '</p>' : '') + '</div>' +
       (link ? '<a class="btn btn--ghost" href="' + link[1] + '" data-magnetic>' + e(link[0]) + ' ' + I('arrow-right', 'icon--sm') + '</a>' : '') + '</div>';
@@ -41,21 +41,51 @@
   }
 
   /* ============================== HOME ============================== */
+  /* section texts from admin (falls back to the built-in translations) */
+  function sx(sec, k, def) { var v = sec && sec[k]; v = v && typeof v === 'object' ? VV.tr(v) : v; return v || def || ''; }
+  function head(sec, eyebrow, title, lead, btn, url) {
+    var b = sx(sec, 'btn', btn);
+    return sectionHead(sx(sec, 'eyebrow', eyebrow), sx(sec, 'title', title), sx(sec, 'lead', lead), b ? [b, sx(sec, 'url', url)] : null);
+  }
+  var SECTIONS = {
+    hero: function () { return VV.data.hero.length ? heroHtml() : ''; },
+    band: function () { return bandHtml(); },
+    top: function (sec) { return topHtml(sec); },
+    directions: function (sec) { return directionsHtml(sec); },
+    hot: function (sec) { return hotHtml(sec); },
+    sale: function (sec) { return saleHtml(sec); },
+    features: function () { return featuresHtml(); },
+    news: function (sec) {
+      var D = VV.data; if (!D.news.length) return '';
+      return '<section class="section news-sec"><div class="wrap">' + head(sec, VV.t('news_eyebrow'), VV.t('news_title'), '', VV.t('see_all'), '/news') +
+        '<div class="n-grid">' + D.news.slice(0, 3).map(function (n, i) { return newsCard(n, i === 0); }).join('') + '</div></div></section>';
+    },
+    cashback: function () { return (VV.data.settings.cashback || {}).enabled !== false ? cashbackHtml() : ''; },
+    brands: function (sec) { return VV.data.brands.length ? brandsHtml(sec) : ''; },
+    text: function (sec) {   // free text block added from the admin
+      return '<section class="section--tight"><div class="wrap wrap--narrow"><div data-anim="reveal">' + (sx(sec, 'eyebrow') ? '<span class="eyebrow">' + e(sx(sec, 'eyebrow')) + '</span>' : '') +
+        (sx(sec, 'title') ? '<h2 class="h-1">' + e(sx(sec, 'title')) + '</h2>' : '') + (sx(sec, 'lead') ? '<p class="lead">' + e(sx(sec, 'lead')) + '</p>' : '') +
+        (sx(sec, 'btn') ? '<a class="btn btn--accent" href="' + e(sx(sec, 'url', '/shop')) + '" data-magnetic>' + e(sx(sec, 'btn')) + ' ' + I('arrow-right', 'icon--sm') + '</a>' : '') + '</div></div></section>';
+    },
+  };
+  function homeSections() {
+    var S = VV.data.settings, list = S.sections;
+    if (!Array.isArray(list) || !list.length) {   // old settings → old toggles
+      var h = S.home || {};
+      list = ['hero', 'band', 'top', 'hot', 'sale', 'features', 'news', 'cashback', 'brands'].map(function (k) { return { key: k, enabled: h[k] !== false }; });
+    }
+    return list;
+  }
+
   P.home = function () {
-    var D = VV.data, home = D.settings.home || {}, html = '';
+    var html = '';
     VV.setTitle('');
-    if (home.hero !== false && D.hero.length) html += heroHtml();
-    if (home.band !== false) html += bandHtml();
-    if (home.directions !== false) html += directionsHtml();
-    if (home.hot !== false) html += hotHtml();
-    if (home.sale !== false) html += saleHtml();
-    if (home.features !== false) html += featuresHtml();
-    if (home.news !== false && D.news.length) html += '<section class="section news-sec"><div class="wrap">' + sectionHead(VV.t('news_eyebrow'), VV.t('news_title'), '', [VV.t('see_all'), '/news']) +
-      '<div class="n-grid">' + D.news.slice(0, 3).map(function (n, i) { return newsCard(n, i === 0); }).join('') + '</div></div></section>';
-    if (home.cashback !== false && (VV.data.settings.cashback || {}).enabled !== false) html += cashbackHtml();
-    if (home.brands !== false && D.brands.length) html += brandsHtml();
+    homeSections().forEach(function (sec) {
+      if (!sec || sec.enabled === false || !SECTIONS[sec.key]) return;
+      try { html += SECTIONS[sec.key](sec); } catch (x) { console.error('section ' + sec.key, x); }
+    });
     main(html);
-    initHero(); initHotTabs();
+    initHero(); initHotTabs(); initTop();
     if (VV.data.settings.auth && $('#cb-me')) VV.acc.me().then(function (me) { if (me) $('#cb-me').innerHTML = '<b>' + VV.money((me.available_tetri || 0) / 100) + '</b> ' + VV.t('cb_available'); });
   };
 
@@ -137,6 +167,7 @@
     hero.addEventListener('touchend', function (ev) { if (sx == null) return; var dx = ev.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) go(cur + (dx < 0 ? 1 : -1)); sx = null; });
     hero.style.setProperty('--hero-t', slides[0].style.getPropertyValue('--t'));
     restart();
+    if (VV.onLeave) VV.onLeave(function () { clearTimeout(timer); timer = null; restart = function () {}; });
   }
 
   /* moving band — same logic as admin2 "მთავარი გვერდის ზოლი" (auto / manual, promo styles) */
@@ -189,9 +220,39 @@
       '<div class="band__stage">' + lanes + '</div></div></div></section>';
   }
 
-  function directionsHtml() {
+  /* products that sold on the site are "top" (VV.data.top, from the server); until there are sales — a mixed list */
+  function shuffled(list) {
+    var seed = +(sessionStorage.getItem('vv_mix') || Math.floor(Math.random() * 1e6)); sessionStorage.setItem('vv_mix', seed);
+    return list.map(function (p, i) { return [((seed * (i + 13)) % 1009), p]; }).sort(function (a, b) { return a[0] - b[0]; }).map(function (x) { return x[1]; });
+  }
+  function topList(n) {
+    var D = VV.data, top = (D.top || []).map(VV.product).filter(Boolean), ids = {};
+    top.forEach(function (p) { ids[p.id] = 1; });
+    var rest = shuffled(D.products.filter(function (p) { return !ids[p.id] && VV.inStock(p) && VV.img(p); }));
+    if (rest.length < n) rest = rest.concat(D.products.filter(function (p) { return !ids[p.id] && rest.indexOf(p) < 0; }));
+    return { list: top.concat(rest).slice(0, n), top: ids, any: top.length > 0 };
+  }
+  function topHtml(sec) {
+    var n = Math.max(4, Math.min(48, +(sec && sec.count) || 12)), r = topList(n);
+    if (!r.list.length) return '';
+    return '<section class="section top-sec" id="top"><div class="wrap">' +
+      sectionHead(r.any ? sx(sec, 'eyebrow', VV.t('top_badge')) : VV.t('products'), sx(sec, 'title', VV.t('top_title')), sx(sec, 'lead'), [sx(sec, 'btn', VV.t('all_products')), sx(sec, 'url', '/shop')]) +
+      '<div class="p-grid p-grid--drop" id="top-grid">' + r.list.map(function (p) { return VV.card(p, r.top[p.id]); }).join('') + '</div></div></section>';
+  }
+  function initTop() {
+    var g = $('#top-grid'); if (!g) return;
+    var cards = $$('.p-card', g);
+    cards.forEach(function (c) { c.removeAttribute('data-anim'); });
+    if (!window.gsap || matchMedia('(prefers-reduced-motion: reduce)').matches) { cards.forEach(function (c) { c.style.opacity = 1; }); return; }
+    var gs = window.gsap; gs.set(cards, { autoAlpha: 0, y: -70, rotate: function (i) { return (i % 2 ? 4 : -4); } });
+    var drop = function () { gs.to(cards, { autoAlpha: 1, y: 0, rotate: 0, duration: .75, stagger: { each: .06, from: 'random' }, ease: 'bounce.out' }); };
+    if (window.ScrollTrigger) window.ScrollTrigger.create({ trigger: g, start: 'top 85%', once: true, onEnter: drop });
+    else drop();
+  }
+
+  function directionsHtml(sec) {
     var cats = VV.topCats();
-    return '<section class="section" id="directions"><div class="wrap">' + sectionHead(VV.t('dir_eyebrow'), VV.t('dir_title'), VV.t('dir_lead'), [VV.t('all_products'), '/shop']) +
+    return '<section class="section" id="directions"><div class="wrap">' + head(sec, VV.t('dir_eyebrow'), VV.t('dir_title'), VV.t('dir_lead'), VV.t('all_products'), '/shop') +
       '<div class="dir-grid">' + cats.map(function (c, i) {
         var prods = VV.data.products.filter(function (p) { return VV.inCat(p, c.id); });
         var imgs = prods.filter(VV.img).slice(0, 3);
@@ -204,14 +265,16 @@
       }).join('') + '</div></div></section>';
   }
 
-  function hotHtml() {
+  var hotCount = 8;
+  function hotHtml(sec) {
     var cats = VV.topCats();
+    hotCount = Math.max(4, Math.min(48, +(sec && sec.count) || 8));
     var list = sortProducts(VV.data.products.filter(function (p) { return p.hot; }));
     if (list.length < 4) list = sortProducts(VV.data.products);
-    return '<section class="section section--soft" id="hot"><div class="wrap">' + sectionHead(VV.t('hot_eyebrow'), VV.t('hot_title'), '', [VV.t('see_all'), '/shop']) +
+    return '<section class="section section--soft" id="hot"><div class="wrap">' + head(sec, VV.t('hot_eyebrow'), VV.t('hot_title'), '', VV.t('see_all'), '/shop') +
       '<div class="tabs" role="tablist" data-anim="reveal"><button type="button" role="tab" class="tab is-on" data-hot="">' + VV.t('all') + '</button>' +
       cats.map(function (c) { return '<button type="button" role="tab" class="tab" style="--t:' + c.color + '" data-hot="' + c.id + '">' + e(c.icon || '') + ' ' + e(VV.tr(c.name)) + '</button>'; }).join('') + '</div>' +
-      '<div id="hot-grid">' + grid(list.slice(0, 8)) + '</div></div></section>';
+      '<div id="hot-grid">' + grid(list.slice(0, hotCount)) + '</div></div></section>';
   }
   function initHotTabs() {
     var box = $('#hot-grid'); if (!box) return;
@@ -221,18 +284,18 @@
         var id = b.getAttribute('data-hot');
         var list = sortProducts(VV.data.products.filter(function (p) { return !id || VV.inCat(p, id); }));
         if (!id) list = list.filter(function (p) { return p.hot; }).concat(list.filter(function (p) { return !p.hot; }));
-        box.innerHTML = grid(list.slice(0, 8));
+        box.innerHTML = grid(list.slice(0, hotCount));
         if (window.gsap) window.gsap.fromTo($$('.p-card', box), { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: .45, stagger: .04, ease: 'back.out(1.4)' });
         else $$('.p-card', box).forEach(function (c) { c.style.opacity = 1; });
       });
     });
   }
 
-  function saleHtml() {
+  function saleHtml(sec) {
     var list = VV.data.products.filter(VV.disc).sort(function (a, b) { return VV.disc(b) - VV.disc(a); });
     if (!list.length) return '';
-    return '<section class="section" id="sale"><div class="wrap">' + sectionHead(VV.t('sale_eyebrow'), VV.t('sale_title'), '', [VV.t('see_all'), '/shop?sale=1']) +
-      '<div class="rail">' + list.slice(0, 12).map(VV.card).join('') + '</div></div></section>';
+    return '<section class="section" id="sale"><div class="wrap">' + head(sec, VV.t('sale_eyebrow'), VV.t('sale_title'), '', VV.t('see_all'), '/shop?sale=1') +
+      '<div class="rail">' + list.slice(0, Math.max(4, +(sec && sec.count) || 12)).map(function (p) { return VV.card(p); }).join('') + '</div></div></section>';
   }
 
   function featuresHtml() {
@@ -262,12 +325,12 @@
       '<div class="gcard__amount">100 ₾</div><div class="gcard__bottom"><span>GIFT CARD</span><span>•••• 2026</span></div></div></div></div></section>';
   }
 
-  function brandsHtml() {
+  function brandsHtml(sec) {
     var set = '<div class="brands__set">' + VV.data.brands.map(function (b) {
       var inner = b.logo ? '<img src="' + e(b.logo) + '" alt="' + e(b.name) + '" draggable="false">' : '<span>' + e(b.name) + '</span>';
       return '<a class="brand-pill" style="--t:' + (b.color || '#15171A') + '" href="/shop?brand=' + encodeURIComponent(b.name) + '">' + inner + '</a>';
     }).join('') + '</div>';
-    return '<section class="section--tight brands-sec"><div class="wrap"><h2 class="h-3 brands-sec__title" data-anim="reveal">' + VV.t('brands_title') + '</h2></div>' +
+    return '<section class="section--tight brands-sec"><div class="wrap"><h2 class="h-3 brands-sec__title" data-anim="reveal">' + e(sx(sec, 'title', VV.t('brands_title'))) + '</h2></div>' +
       '<div class="brands" data-mq data-track=".brands__row" data-speed="-36" data-hover-pause><div class="brands__row">' + set + set + set + set + '</div></div></section>';
   }
 
@@ -363,8 +426,8 @@
 
     main('<section class="pd-wrap" style="--t:' + color + '"><div class="wrap">' + crumbs(cl) +
       '<div class="pd">' +
-        '<div class="pd__gallery" data-anim="intro"><div class="pd__stage"><span class="pd__blob"></span><span class="pd__blob pd__blob--2"></span>' +
-          (imgs[0] ? '<img id="pd-img" src="' + e(imgs[0]) + '" alt="' + e(name) + '">' : '<span class="ph">' + I('gift', 'icon--lg') + '</span>') +
+        '<div class="pd__gallery" data-anim="intro"><div class="pd__stage">' +
+          (imgs[0] ? '<img id="pd-img" src="' + e(imgs[0]) + '" alt="' + e(name) + '">' : '<span class="ph">' + I('gift', 'icon--lg') + '<small>' + VV.t('no_photo') + '</small></span>') +
           '<span class="p-card__badges">' + (d ? '<span class="badge badge--sale">−' + d + '%</span>' : '') + (p.isNew ? '<span class="badge badge--new">' + VV.t('new') + '</span>' : '') + '</span></div>' +
           (imgs.length > 1 ? '<div class="pd__thumbs">' + imgs.map(function (src, i) { return '<button type="button" class="' + (i ? '' : 'is-on') + '" data-src="' + e(src) + '"><img src="' + e(src) + '" alt=""></button>'; }).join('') + '</div>' : '') +
         '</div>' +
@@ -409,7 +472,7 @@
     var add = $('#pd-add'), buy = $('#pd-buy');
     var label = function () { return vs[vi] ? vs[vi].label : ''; };
     if (add) add.addEventListener('click', function () { VV.addToCart(p.id, label(), +$('#pd-qty').value || 1, add); });
-    if (buy) buy.addEventListener('click', function () { VV.cart.add(p.id, label(), +$('#pd-qty').value || 1); location.href = '/checkout'; });
+    if (buy) buy.addEventListener('click', function () { VV.cart.add(p.id, label(), +$('#pd-qty').value || 1); VV.navigate ? VV.navigate('/checkout', true) : (location.href = '/checkout'); });
     $('#pd-share').addEventListener('click', function () {
       if (navigator.share) navigator.share({ title: name, url: location.href }).catch(function () {});
       else navigator.clipboard.writeText(location.href).then(function () { VV.toast(VV.t('copied')); });
@@ -442,7 +505,7 @@
     if (!pg) return P.notfound();
     VV.setTitle(VV.tr(pg.title));
     var st = stats();
-    main(pageHero(VV.data.settings.site.name || 'Vivace', VV.tr(pg.title), VV.tr(pg.lead), key === 'about' ? '#FF3D7F' : '#2F6BFF', crumbs([[VV.tr(pg.title), '']])) +
+    main(pageHero(VV.data.settings.site.name || 'Vivace', VV.tr(pg.title), VV.tr(pg.lead), pg.color || (key === 'about' ? '#FF3D7F' : key === 'terms' ? '#8B5CF6' : '#2F6BFF'), crumbs([[VV.tr(pg.title), '']])) +
       '<section class="section--tight"><div class="wrap page-body' + (pg.image ? ' page-body--img' : '') + '"><div class="rich rich--lg" data-anim="reveal">' + VV.tr(pg.text) + '</div>' +
       (pg.image ? '<div class="page-body__img" data-anim="reveal" data-tilt><img src="' + e(pg.image) + '" alt=""></div>' : '') + '</div></section>' +
       (key === 'about' ? '<section class="section--tight"><div class="wrap"><div class="numbers">' +
@@ -451,9 +514,16 @@
         '</div></div></section>' + featuresHtml() : ''));
   };
 
+  var CONTACT_HTML = '<div id="contact-hero"></div><section class="section--tight"><div class="wrap c-grid"><div class="c-info" id="contact-info"></div>' +
+    '<form class="form-card" id="contact-form" name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" data-anim="reveal"><input type="hidden" name="form-name" value="contact">' +
+    '<p class="hp"><label>Don\'t fill this out: <input name="bot-field"></label></p><h2 class="h-3" data-i18n="ct_title"></h2><div class="row2">' +
+    '<label class="field"><span data-i18n="co_name"></span><input name="name" required autocomplete="name"></label><label class="field"><span data-i18n="co_phone"></span><input name="phone" type="tel" autocomplete="tel"></label></div>' +
+    '<label class="field"><span data-i18n="email"></span><input name="email" type="email" autocomplete="email"></label><label class="field"><span data-i18n="ct_msg"></span><textarea name="message" rows="5" required></textarea></label>' +
+    '<button class="btn btn--accent btn--wide" type="submit"><span data-i18n="ct_send"></span></button></form></div></section>';
   P.contact = function () {
     var c = VV.data.settings.contact || {}, mp = VV.map();
     VV.setTitle(VV.t('contact'));
+    if (!document.getElementById('contact-form')) main(CONTACT_HTML);
     var hero = document.getElementById('contact-hero');
     hero.outerHTML = pageHero(VV.t('contact'), VV.t('ct_title'), VV.t('ct_lead'), '#14B8A6', crumbs([[VV.t('contact'), '']]));
     var wa = c.whatsapp ? 'https://wa.me/' + String(c.whatsapp).replace(/\D/g, '') : '';
@@ -495,7 +565,9 @@
       $$('.p-card').forEach(function (c) { c.style.opacity = 1; c.style.visibility = 'visible'; });
     }
     draw();
-    document.addEventListener('click', function (ev) { if (ev.target.closest('[data-wish]')) setTimeout(draw, 50); });
+    var onWish = function (ev) { if (ev.target.closest('[data-wish]')) setTimeout(draw, 50); };
+    document.addEventListener('click', onWish);
+    if (VV.onLeave) VV.onLeave(function () { document.removeEventListener('click', onWish); });
   };
 
   /* ============================== CHECKOUT ============================== */
@@ -541,7 +613,7 @@
         '</form>' +
         '<aside class="co__sum" data-anim="reveal"><div class="co-card co-card--sum"><h3>' + VV.t('co_summary') + '</h3><div id="co-lines"></div><div id="co-totals"></div>' +
           '<button class="btn btn--accent btn--wide btn--lg" type="submit" form="co-form" id="co-submit"' + (guestOk ? '' : ' disabled') + '>' + VV.t('co_submit') + ' ' + I('arrow-right', 'icon--sm') + '</button>' +
-          '<p class="co__terms">' + VV.t('co_terms') + ' <a href="/delivery">' + VV.t('delivery') + '</a></p>' + (libra && !me ? '<p class="co__terms">' + VV.t('cb_note') + '</p>' : '') + '<p class="co__err" id="co-err" role="alert"></p></div></aside>' +
+          '<p class="co__terms">' + VV.t('co_terms') + ' <a href="/terms">' + VV.t('terms') + '</a> · <a href="/delivery">' + VV.t('delivery') + '</a></p>' + (libra && !me ? '<p class="co__terms">' + VV.t('cb_note') + '</p>' : '') + '<p class="co__err" id="co-err" role="alert"></p></div></aside>' +
       '</div></section>');
       totals();
       var form = $('#co-form');
@@ -605,6 +677,7 @@
     }
     if (libra && VV.acc.token()) VV.acc.me(true).then(function (m) { me = m; render(); }); else render();
     window.addEventListener('storage', render);
+    if (VV.onLeave) VV.onLeave(function () { window.removeEventListener('storage', render); });
   };
 
   /* transfer receipt → Supabase (vv_upload_proof) → LIBRA downloads it */

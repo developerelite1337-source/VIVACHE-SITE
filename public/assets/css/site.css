@@ -387,11 +387,8 @@ a.chip--cat:hover { background: var(--t); color: #fff; }
 .p-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
 .p-card { position: relative; display: flex; flex-direction: column; border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-1); overflow: hidden; transition: transform .45s var(--ease-back), box-shadow .4s; }
 @media (hover: hover) { .p-card:hover { transform: translateY(-7px); box-shadow: var(--shadow-c), var(--shadow-2); } }
-.p-card__media { position: relative; aspect-ratio: 1; display: grid; place-items: center; padding: 20px; background: color-mix(in srgb, var(--t) 7%, #fff); overflow: hidden; }
-.p-card__blob { position: absolute; width: 74%; aspect-ratio: 1; border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; background: color-mix(in srgb, var(--t) 22%, #fff); transition: transform .7s var(--ease-back), background-color .4s; }
-.p-card:hover .p-card__blob { transform: scale(1.18) rotate(40deg); background: color-mix(in srgb, var(--t) 34%, #fff); }
-.p-card__media img { position: relative; width: 100%; height: 100%; object-fit: contain; transition: transform .6s var(--ease-back); }
-.p-card:hover .p-card__media img { transform: scale(1.07) rotate(-3deg); }
+.p-card__media { position: relative; aspect-ratio: 1; display: grid; place-items: center; padding: 18px; background: #fff; overflow: hidden; border-bottom: 1px solid var(--line); }
+.p-card__media img { position: relative; width: 100%; height: 100%; object-fit: contain; }
 .p-card__badges { position: absolute; left: 12px; top: 12px; z-index: 2; display: flex; flex-wrap: wrap; gap: 5px; }
 .ph { color: var(--t, var(--ink-3)); }
 .p-card__body { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 16px; flex: 1; }
@@ -523,9 +520,7 @@ a.chip--cat:hover { background: var(--t); color: #fff; }
 .pd { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 60px); margin-top: 18px; align-items: start; }
 .pd__gallery { position: sticky; top: calc(var(--header-h) + 20px); }
 .pd__stage { position: relative; aspect-ratio: 1; display: grid; place-items: center; padding: 10%; border-radius: 34px; background: #fff; box-shadow: var(--shadow-1); overflow: hidden; }
-.pd__blob { position: absolute; width: 78%; aspect-ratio: 1; border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; background: color-mix(in srgb, var(--t) 22%, #fff); animation: vvMorph 12s ease-in-out infinite; }
-.pd__blob--2 { width: 24%; right: 6%; top: 8%; background: color-mix(in srgb, var(--t) 40%, #fff); animation-duration: 9s; }
-.pd__stage img { position: relative; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 26px 26px rgba(0,0,0,.14)); }
+.pd__stage img { position: relative; width: 100%; height: 100%; object-fit: contain; }
 .pd__stage img.is-swap { animation: vvSwap .5s var(--ease-back); }
 @keyframes vvSwap { from { opacity: 0; transform: scale(.9) rotate(-4deg); } }
 .pd__stage .p-card__badges { left: 18px; top: 18px; }
@@ -1066,7 +1061,6 @@ a.chip--cat:hover { background: var(--t); color: #fff; }
    ========================================================================== */
 .ny-snow { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
 html.ny .site-logo { position: relative; }
-html.ny .site-logo::before { content: ""; position: absolute; left: 4%; right: 8%; top: -7px; height: 12px; border-radius: 10px 10px 6px 6px; background: #fff; box-shadow: 0 2px 4px rgba(120,160,255,.35); z-index: 2; clip-path: polygon(0 60%, 6% 20%, 14% 50%, 22% 10%, 32% 45%, 42% 0, 52% 40%, 62% 8%, 72% 50%, 82% 15%, 92% 45%, 100% 30%, 100% 100%, 0 100%); }
 .ny-garland { position: absolute; left: 0; right: 0; bottom: -18px; height: 22px; pointer-events: none; z-index: 3; overflow: hidden; }
 .ny-garland svg { position: absolute; inset: 0 0 auto; width: 100%; height: 12px; }
 .ny-garland i { position: absolute; width: 9px; height: 13px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: var(--c); box-shadow: 0 0 10px 2px var(--c); animation: nyBlink 1.6s ease-in-out infinite; animation-delay: calc(var(--i) * .27s); }
@@ -1140,3 +1134,24 @@ html.ny .site-logo::before { content: ""; position: absolute; left: 4%; right: 8
   .hero__glass { padding: 20px; }
 }
 @media (prefers-reduced-motion: reduce) { .ny-sleigh, .ny-elf { display: none; } }
+
+/* ---------- product frame: a clean coloured stripe that follows the top strip colours (admin → პარამეტრები → ბარათის ჩარჩო) ---------- */
+:root { --frame: linear-gradient(90deg, #15171A, #15171A); }
+.p-card, .pd__stage { border: 3px solid transparent; background: linear-gradient(#fff, #fff) padding-box, var(--frame) border-box; }
+.p-card { box-shadow: 0 6px 18px -12px rgba(21,23,26,.35); }
+@media (hover: hover) { .p-card:hover { transform: translateY(-4px); box-shadow: 0 16px 30px -18px rgba(21,23,26,.45); } }
+.pd__stage { box-shadow: 0 10px 30px -20px rgba(21,23,26,.4); }
+.ph { display: grid; justify-items: center; gap: 6px; color: var(--ink-3); text-align: center; }
+.ph small { font-size: 12px; font-weight: 700; color: var(--ink-3); }
+.badge--top { background: linear-gradient(135deg, #FFB020, #FF3D7F); color: #fff; }
+.top-sec .p-grid--drop .p-card { will-change: transform; }
+
+/* footer author */
+.footer-author { font-size: 13px; opacity: .8; }
+.footer-author b { font-weight: 800; }
+
+/* music dock (all pages, not only New Year) */
+.ny-mus { display: inline-flex; align-items: center; gap: 4px; }
+.ny-music { background: linear-gradient(135deg, #FF3D7F, #2F6BFF); }
+html.ny .ny-music { background: linear-gradient(135deg, #DC2626, #16A34A); }
+.ny-dock:empty { display: none; }

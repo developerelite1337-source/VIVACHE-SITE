@@ -1,86 +1,9 @@
-/* VIVACHE — New Year mode (admin → „საახალწლო რეჟიმი“): snow, garland, Santa's sleigh, elves, countdown, carols.
-   The music is synthesised in the browser (Web Audio) from public-domain carol melodies — no audio files, no copyright,
-   and it switches to the next carol by itself. Browsers allow sound only after a click, so it starts from the 🎵 button
-   (and resumes on the next visit after the first click if the visitor left it on). */
+/* VIVACHE — New Year mode (admin → „საახალწლო რეჟიმი“): snow, garland, Santa's sleigh, elves, countdown.
+   Music lives in music.js (admin → „მუსიკა“) and keeps playing across pages. */
 (function () {
   'use strict';
   var VV = window.VV = window.VV || {};
   var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  /* ---------------- carols: "NOTE beats" ---------------- */
-  var SONGS = [
-    { ka: 'Jingle Bells', bpm: 168, bells: true, notes:
-      'E4 1,E4 1,E4 2,E4 1,E4 1,E4 2,E4 1,G4 1,C4 1.5,D4 .5,E4 4,F4 1,F4 1,F4 1.5,F4 .5,F4 1,E4 1,E4 1,E4 .5,E4 .5,E4 1,D4 1,D4 1,E4 1,D4 2,G4 2,' +
-      'E4 1,E4 1,E4 2,E4 1,E4 1,E4 2,E4 1,G4 1,C4 1.5,D4 .5,E4 4,F4 1,F4 1,F4 1.5,F4 .5,F4 1,E4 1,E4 1,E4 .5,E4 .5,G4 1,G4 1,F4 1,D4 1,C4 4' },
-    { ka: 'We Wish You a Merry Christmas', bpm: 150, notes:
-      'D4 1,G4 1,G4 .5,A4 .5,G4 .5,F#4 .5,E4 1,E4 1,E4 1,A4 1,A4 .5,B4 .5,A4 .5,G4 .5,F#4 1,D4 1,D4 1,B4 1,B4 .5,C5 .5,B4 .5,A4 .5,G4 1,E4 1,D4 .5,D4 .5,E4 1,A4 1,F#4 1,G4 2,R 1,' +
-      'D4 1,G4 1,G4 1,G4 1,F#4 2,F#4 1,G4 1,F#4 1,E4 1,D4 2,A4 1,B4 1,A4 .5,A4 .5,G4 .5,G4 .5,D5 1,D4 1,D4 .5,D4 .5,E4 1,A4 1,F#4 1,G4 3' },
-    { ka: 'Deck the Halls', bpm: 140, notes:
-      'G4 1.5,F4 .5,E4 1,D4 1,C4 1,D4 1,E4 1,C4 1,D4 .5,E4 .5,F4 .5,D4 .5,E4 1.5,D4 .5,C4 1,B3 1,C4 2,' +
-      'G4 1.5,F4 .5,E4 1,D4 1,C4 1,D4 1,E4 1,C4 1,D4 .5,E4 .5,F4 .5,D4 .5,E4 1.5,D4 .5,C4 1,B3 1,C4 2,' +
-      'D4 1.5,E4 .5,F4 1,D4 1,E4 1.5,F4 .5,G4 1,D4 1,E4 .5,F#4 .5,G4 1,A4 .5,B4 .5,C5 1,B4 1,A4 1,G4 2,' +
-      'G4 1.5,F4 .5,E4 1,D4 1,C4 1,D4 1,E4 1,C4 1,A4 .5,A4 .5,A4 .5,A4 .5,G4 1.5,F4 .5,E4 1,D4 1,C4 2' },
-    { ka: 'Silent Night', bpm: 210, soft: true, notes:
-      'G4 3,A4 1,G4 2,E4 6,G4 3,A4 1,G4 2,E4 6,D5 4,D5 2,B4 6,C5 4,C5 2,G4 6,A4 4,A4 2,C5 3,B4 1,A4 2,G4 3,A4 1,G4 2,E4 6,' +
-      'A4 4,A4 2,C5 3,B4 1,A4 2,G4 3,A4 1,G4 2,E4 6,D5 4,D5 2,F5 3,D5 1,B4 2,C5 6,E5 6,C5 3,G4 1,E4 2,G4 3,F4 1,D4 2,C4 12' },
-  ];
-  var IDX = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
-  function freq(n) { var m = n.match(/^([A-G]#?)(\d)$/); return 440 * Math.pow(2, ((+m[2] + 1) * 12 + IDX[m[1]] - 69) / 12); }
-
-  var Music = {
-    ctx: null, master: null, timer: null, song: +localStorage.getItem('vv_song') || 0, on: false,
-    start: function () {
-      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-      if (!this.ctx) { this.ctx = new AC(); this.master = this.ctx.createGain(); this.master.gain.value = .55; this.master.connect(this.ctx.destination); }
-      this.ctx.resume(); this.on = true; localStorage.setItem('vv_music', 'on');
-      this.play(this.song); Music.ui();
-    },
-    stop: function () {
-      this.on = false; localStorage.setItem('vv_music', 'off'); clearTimeout(this.timer);
-      if (this.ctx) { this.ctx.close(); this.ctx = null; }
-      Music.ui();
-    },
-    next: function () { this.song = (this.song + 1) % SONGS.length; localStorage.setItem('vv_song', this.song); if (this.on) { clearTimeout(this.timer); var self = this; if (this.ctx) this.ctx.close(); this.ctx = null; this.start(); } else Music.ui(); },
-    play: function (i) {
-      var s = SONGS[i], ctx = this.ctx, beat = 60 / s.bpm, t = ctx.currentTime + .15, self = this, b = 0;
-      s.notes.split(',').forEach(function (tok) {
-        var p = tok.trim().split(/\s+/), dur = parseFloat(p[1]) * beat;
-        if (p[0] !== 'R') self.note(freq(p[0]), t, dur, s.soft);
-        if (s.bells && Math.abs(b - Math.round(b)) < .01) self.bell(t);
-        if (Math.abs(b % (s.bpm > 200 ? 6 : 2)) < .01) self.bass(freq(p[0] === 'R' ? 'C3' : p[0].replace(/\d/, '3')), t, Math.min(dur * 2, 1.2));
-        t += dur; b += parseFloat(p[1]);
-      });
-      this.timer = setTimeout(function () { if (!self.on) return; self.song = (i + 1) % SONGS.length; localStorage.setItem('vv_song', self.song); self.play(self.song); Music.ui(); }, (t - ctx.currentTime + 1.6) * 1000);
-    },
-    note: function (f, t, dur, soft) {
-      var ctx = this.ctx, g = ctx.createGain(), o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), g2 = ctx.createGain();
-      o1.type = 'triangle'; o1.frequency.value = f; o2.type = 'sine'; o2.frequency.value = f * 2; g2.gain.value = .28;
-      var peak = soft ? .16 : .22, len = Math.min(Math.max(dur * 1.5, .35), 2.2);
-      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + .012); g.gain.exponentialRampToValueAtTime(.0008, t + len);
-      o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(this.master);
-      o1.start(t); o2.start(t); o1.stop(t + len + .05); o2.stop(t + len + .05);
-    },
-    bass: function (f, t, len) {
-      var ctx = this.ctx, g = ctx.createGain(), o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f / 2;
-      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.12, t + .02); g.gain.exponentialRampToValueAtTime(.0008, t + len);
-      o.connect(g); g.connect(this.master); o.start(t); o.stop(t + len + .05);
-    },
-    bell: function (t) {
-      var ctx = this.ctx;
-      if (!this.noise) { var n = ctx.sampleRate * .2, buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0); for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; this.noise = buf; }
-      var src = ctx.createBufferSource(), hp = ctx.createBiquadFilter(), g = ctx.createGain();
-      src.buffer = this.noise; hp.type = 'highpass'; hp.frequency.value = 7000;
-      g.gain.setValueAtTime(.09, t); g.gain.exponentialRampToValueAtTime(.0008, t + .12);
-      src.connect(hp); hp.connect(g); g.connect(this.master); src.start(t); src.stop(t + .15);
-    },
-    ui: function () {
-      var b = document.querySelector('.ny-music'); if (!b) return;
-      b.classList.toggle('is-on', this.on);
-      b.setAttribute('aria-pressed', this.on);
-      var n = document.querySelector('.ny-song'); if (n) n.textContent = '♪ ' + SONGS[this.song].ka;
-    },
-  };
-  VV.music = Music;
 
   /* ---------------- art ---------------- */
   var SLEIGH = '<svg viewBox="0 0 520 150" aria-hidden="true">' +
@@ -159,43 +82,26 @@
       document.body.appendChild(el);
       var peek = function () { el.classList.add('is-up'); setTimeout(function () { el.classList.remove('is-up'); }, 6500); };
       setTimeout(peek, 6000 + k * 9000); setInterval(peek, 26000 + k * 7000);
-      el.addEventListener('click', function (e) { VV.confetti && VV.confetti(e.clientX, e.clientY - 40, 26); if (!Music.on) Music.start(); else Music.next(); });
+      el.addEventListener('click', function (e) { VV.confetti && VV.confetti(e.clientX, e.clientY - 40, 26); var M = VV.music; if (M && M.list && M.list.length) { if (!M.on) M.start(); else M.next(); } });
     });
   }
 
-  function dock(cfg) {
-    var d = document.createElement('div'); d.className = 'ny-dock';
-    var parts = '';
-    if (cfg.music !== false) parts += '<button type="button" class="ny-music" aria-pressed="false" title="' + VV.t('ny_music') + '"><span class="ny-music__icon">' + VV.icon('music', 'icon--sm') + '</span><span class="ny-eq"><i></i><i></i><i></i><i></i></span></button>' +
-      '<button type="button" class="ny-next" title="▶▶" aria-label="next">▶▶</button><span class="ny-song"></span>';
-    if (cfg.countdown !== false) {
-      var y = new Date().getFullYear(), ny = new Date((new Date().getMonth() === 0 && new Date().getDate() <= 7 ? y : y + 1) + '-01-01T00:00:00');
-      parts += '<span class="ny-count">🎄 <span>' + VV.t('ny_until') + '</span> <b data-ny="' + ny.toISOString() + '"></b></span>';
-    }
-    d.innerHTML = parts; document.body.appendChild(d);
-    var b = d.querySelector('[data-ny]');
-    if (b) {
-      var tick = function () {
-        var ms = new Date(b.getAttribute('data-ny')) - new Date();
-        if (ms <= 0 || ms > 360 * 864e5) { b.textContent = VV.t('ny_happy'); d.querySelector('.ny-count span').hidden = true; return; }
-        var s = Math.floor(ms / 1000), dd = Math.floor(s / 86400), hh = Math.floor(s % 86400 / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
-        var p = function (n) { return (n < 10 ? '0' : '') + n; };
-        b.textContent = dd + ' ' + VV.t('ny_days') + ' ' + p(hh) + ':' + p(mm) + ':' + p(ss);
-      };
-      tick(); setInterval(tick, 1000);
-    }
-    var mb = d.querySelector('.ny-music');
-    if (mb) {
-      mb.addEventListener('click', function () { if (Music.on) Music.stop(); else Music.start(); });
-      d.querySelector('.ny-next').addEventListener('click', function () { Music.next(); });
-      Music.ui();
-      // visitor left the music on last time → resume on the first click anywhere (browsers block autoplay)
-      if (localStorage.getItem('vv_music') === 'on') {
-        var go = function (ev) { if (ev.target.closest('.ny-dock')) return; document.removeEventListener('pointerdown', go, true); if (!Music.on) Music.start(); };
-        document.addEventListener('pointerdown', go, true);
-        mb.classList.add('is-hint');
-      }
-    }
+
+  function countdown() {
+    var d = VV.dock ? VV.dock() : null; if (!d || d.querySelector('.ny-count')) return;
+    var y = new Date().getFullYear(), ny = new Date((new Date().getMonth() === 0 && new Date().getDate() <= 7 ? y : y + 1) + '-01-01T00:00:00');
+    var c = document.createElement('span'); c.className = 'ny-count';
+    c.innerHTML = '🎄 <span>' + VV.t('ny_until') + '</span> <b></b>';
+    d.appendChild(c);
+    var b = c.querySelector('b');
+    var tick = function () {
+      var ms = ny - new Date();
+      if (ms <= 0 || ms > 360 * 864e5) { b.textContent = VV.t('ny_happy'); c.querySelector('span').hidden = true; return; }
+      var s = Math.floor(ms / 1000), dd = Math.floor(s / 86400), hh = Math.floor(s % 86400 / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
+      var p = function (n) { return (n < 10 ? '0' : '') + n; };
+      b.textContent = dd + ' ' + VV.t('ny_days') + ' ' + p(hh) + ':' + p(mm) + ':' + p(ss);
+    };
+    tick(); setInterval(tick, 1000);
   }
 
   VV.newyear = function () {
@@ -208,6 +114,6 @@
       if (cfg.santa !== false) santa();
       if (cfg.elves !== false && innerWidth > 640) elves();
     }
-    dock(cfg);
+    if (cfg.countdown !== false) countdown();
   };
 })();

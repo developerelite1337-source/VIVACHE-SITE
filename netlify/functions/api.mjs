@@ -33,12 +33,18 @@ const ITEM_COLLS = ['products', 'news', 'categories', 'brands', 'hero'];
 const STATUSES = ['new', 'confirmed', 'processing', 'shipped', 'completed', 'cancelled'];
 const LIBRA_MSG = 'ეს მონაცემი LIBRA FINANCE-დან მოდის — შეცვალე Libra-ში (საიტზე ~1 წუთში განახლდება).';
 
-export default async (req) => {
+export default async (req, context) => {
   const url = new URL(req.url);
   const parts = url.pathname.replace(/^\/api\/?/, '').replace(/\/+$/, '').split('/').filter(Boolean);
   const m = req.method;
   try {
     if (m === 'GET' && parts[0] === 'catalog') return await catalog();
+    // visitor's approximate location from Netlify's edge (IP based, no browser permission) — used by the weather widget
+    if (m === 'GET' && parts[0] === 'geo') {
+      const g = (context && context.geo) || {};
+      return json({ city: g.city || '', country: (g.country && g.country.name) || '', code: (g.country && g.country.code) || '',
+        lat: g.latitude ?? null, lon: g.longitude ?? null, tz: g.timezone || '' }, 200, { 'cache-control': 'private, no-store' });
+    }
     if (m === 'POST' && parts[0] === 'orders') return await createOrder(req);
     if (m === 'POST' && parts[0] === 'account') return await account(req, parts[1], url);
     if (parts[0] === 'admin') {
@@ -82,7 +88,7 @@ async function catalog() {
     settings: d.settings, categories: d.categories, brands: d.brands, products: d.products,
     news: d.news.filter((n) => !n.hidden).sort((a, b) => String(b.date).localeCompare(String(a.date))),
     hero: d.hero.filter((h) => !h.hidden).sort((a, b) => (a.sort || 0) - (b.sort || 0)),
-    pages: d.pages, now: new Date().toISOString(),
+    pages: d.pages, top: await topSellers(d.products), now: new Date().toISOString(),
   };
   // Libra changes arrive every minute → short CDN cache; admin writes purge it immediately
   return json(data, 200, {
@@ -90,6 +96,27 @@ async function catalog() {
     'netlify-cdn-cache-control': `public, durable, s-maxage=${supa.supaOn() ? 60 : 300}, stale-while-revalidate=120`,
     'netlify-cache-tag': 'catalog',
   });
+}
+
+/** best-selling product ids: LIBRA's 90-day sales (store + delivered site orders), plus site orders when visible */
+async function topSellers(products) {
+  const score = new Map();
+  const add = (id, n) => { if (id) score.set(id, (score.get(id) || 0) + n); };
+  try {
+    if (supa.supaOn()) {
+      products.forEach((p) => { if (p.popularity > 0) add(p.id, p.popularity); });
+      if (supa.serviceOn()) {
+        const rows = await supa.rest('orders?select=items,status&order=created_at.desc&limit=500', { service: true }).catch(() => []);
+        rows.filter((o) => o.status !== 'cancelled').forEach((o) => (o.items || []).forEach((i) => add(i.product_id, (i.qty || 1) * 3)));
+      }
+    } else {
+      const keys = (await db.listOrderKeys()).slice(0, 100);
+      const orders = (await Promise.all(keys.map(db.getOrder))).filter(Boolean);
+      orders.filter((o) => o.status !== 'cancelled').forEach((o) => (o.items || []).forEach((i) => add(i.id, i.qty || 1)));
+    }
+  } catch (e) { console.error('top sellers', e); }
+  const live = new Set(products.map((p) => p.id));
+  return [...score.entries()].filter(([id]) => live.has(id)).sort((a, b) => b[1] - a[1]).slice(0, 24).map(([id]) => id);
 }
 
 async function purge() {
@@ -291,6 +318,13 @@ async function admin(req, m, p, url) {
     delete next.libra; delete next.auth;
     await db.put('settings', next); await purge();
     return json(libra ? (await load(true)).settings : next);
+  }
+  if (a === 'pages' && b && m === 'DELETE') {
+    const key = b.replace(/[^a-z0-9-]/gi, '');
+    if (['about', 'delivery', 'terms'].includes(key)) throw new HttpError(409, 'ძირითადი გვერდი არ იშლება — შეგიძლია მენიუდან მოხსნა');
+    const pages = await db.get('pages'); delete pages[key];
+    await db.put('pages', pages); await purge();
+    return json(pages);
   }
   if (a === 'pages' && b && m === 'PUT') {
     const pages = await db.get('pages'); const x = await body(req);
@@ -510,12 +544,15 @@ async function orders(req, m, id, url) {
 }
 
 /* ---------- uploads ---------- */
-const TYPES = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/svg+xml': 'svg', 'image/avif': 'avif' };
+const TYPES = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/svg+xml': 'svg', 'image/avif': 'avif',
+  'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/aac': 'aac', 'audio/wav': 'wav', 'audio/x-wav': 'wav' };
 async function upload(req) {
   const type = (req.headers.get('content-type') || '').split(';')[0].trim();
-  if (!TYPES[type]) throw new HttpError(415, 'დასაშვებია მხოლოდ სურათი (JPG, PNG, WebP, GIF, SVG)');
+  if (!TYPES[type]) throw new HttpError(415, 'დასაშვებია სურათი (JPG, PNG, WebP, GIF, SVG) ან მუსიკა (MP3, M4A, OGG, WAV)');
   const buf = await req.arrayBuffer();
-  if (buf.byteLength > 5 * 1024 * 1024) throw new HttpError(413, 'სურათი 5MB-ზე დიდია');
+  const audio = type.startsWith('audio/');
+  // Netlify Functions accept request bodies up to ~6 MB
+  if (buf.byteLength > (audio ? 5.8 : 5) * 1024 * 1024) throw new HttpError(413, audio ? 'მუსიკის ფაილი 5.8 MB-ზე დიდია — შეკუმშე (128 kbps MP3) ან დაამატე ბმულით' : 'სურათი 5MB-ზე დიდია');
   if (type === 'image/svg+xml' && /<script|on\w+\s*=/i.test(Buffer.from(buf).toString())) throw new HttpError(422, 'SVG შეიცავს სკრიპტს');
   const key = uid() + '.' + TYPES[type];
   await db.media().set(key, buf, { metadata: { type } });

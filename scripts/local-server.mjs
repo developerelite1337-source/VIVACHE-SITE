@@ -65,6 +65,7 @@ http.createServer(async (req, res) => {
     if (req.method === 'POST' && path === '/') { res.writeHead(200); return res.end('ok (Netlify Forms works only on Netlify)'); }
     if (path.startsWith('/product/')) return file(res, join(pub, 'product.html'));
     if (path.startsWith('/post/')) return file(res, join(pub, 'article.html'));
+    if (path.startsWith('/p/')) return file(res, join(pub, 'page.html'));
     if (path.endsWith('/')) path += 'index.html';
     const p = normalize(join(pub, path));
     if (!p.startsWith(pub)) { res.writeHead(403); return res.end(); }

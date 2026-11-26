@@ -114,6 +114,23 @@ const pages = {
     text: t('<p>ჩვენ ვარჩევთ პროდუქციას, რომელიც ბავშვებს ახალისებს და მშობლებს ენდობა: საკანცელარიო ნივთები, წიგნები, სათამაშოები და საჩუქრები, რომლებსაც დიდხანს ახსოვთ.</p><p>ყოველ ყიდვაზე გროვდება <b>ქეშბექი</b> VIVACHE-ს ბარათზე — გამოიყენე მაღაზიაშიც და ონლაინაც.</p><p>გვეწვიეთ მაღაზიაში ან შეუკვეთეთ ონლაინ.</p>', '<p>We choose products kids love and parents trust: stationery, books, toys and gifts people remember.</p><p>Every purchase earns <b>cashback</b> on your VIVACHE card — use it in store and online.</p>'),
     image: PH('gifts'),
   },
+  terms: {
+    title: t('წესები და პირობები', 'Terms & conditions'),
+    lead: t('VIVACHE-ს ვებსაიტით სარგებლობისა და ონლაინ შეკვეთის პირობები.', 'Terms of use and online ordering at VIVACHE.'),
+    text: t(
+      '<h3>1. ზოგადი დებულებები</h3><p>ვებსაიტს მართავს VIVACHE (ბათუმი, მელიქიშვილის II შესახვევი №1). საიტით სარგებლობით და შეკვეთის გაფორმებით ეთანხმები ამ წესებს. პირობები შეიძლება განახლდეს — მოქმედი ვერსია ყოველთვის ამ გვერდზეა.</p>'
+      + '<h3>2. ანგარიში</h3><p>რეგისტრაცია შესაძლებელია ელფოსტით ან მაღაზიაში მინიჭებული ლოგინით. მომხმარებელი პასუხისმგებელია პაროლის დაცვაზე. არასწორი ინფორმაციის მითითების ან წესების დარღვევის შემთხვევაში ანგარიში შეიძლება შეიზღუდოს.</p>'
+      + '<h3>3. პროდუქცია და ფასები</h3><p>ფასები მითითებულია ლარში (₾) და მოიცავს გადასახადებს. ფასი და მარაგი ახლდება ავტომატურად; შეკვეთის ჯამი საბოლოოდ დასტურდება შეკვეთის გაფორმებისას. ფოტოები საილუსტრაციოა — ფერი და შეფუთვა შეიძლება მცირედ განსხვავდებოდეს.</p>'
+      + '<h3>4. შეკვეთა</h3><p>შეკვეთა ითვლება მიღებულად მისი ნომრის მინიჭებისას. ოპერატორი დაგიკავშირდება დასადასტურებლად. მარაგის ამოწურვის ან აშკარა შეცდომის შემთხვევაში VIVACHE უფლებამოსილია გააუქმოს შეკვეთა და დაგიბრუნოს გადახდილი თანხა. ახალ შეკვეთას (სანამ მიიღებენ) შეგიძლია თავად გააუქმო ანგარიშიდან.</p>'
+      + '<h3>5. გადახდა</h3><p>გადახდა შესაძლებელია ნაღდით მიღებისას, საბანკო გადარიცხვით ან სხვა ხერხით, რომელიც შეკვეთისას ჩანს. გადარიცხვისას დანიშნულებაში მიუთითე შეკვეთის ნომერი.</p>'
+      + '<h3>6. მიწოდება</h3><p>მიწოდების ფასი, ვადა და უფასო მიწოდების ზღვარი ჩანს შეკვეთის გაფორმებისას. შეგიძლია შეკვეთა მაღაზიიდანაც გაიტანო.</p>'
+      + '<h3>7. დაბრუნება და გაცვლა</h3><p>გამოუყენებელი, დაუზიანებელი ნივთის დაბრუნება ან გაცვლა შესაძლებელია მიღებიდან 14 დღის განმავლობაში, ორიგინალი შეფუთვით და ჩეკით/შეკვეთის ნომრით. წუნიანი პროდუქცია ბრუნდება ან იცვლება საქართველოს კანონმდებლობის შესაბამისად.</p>'
+      + '<h3>8. ქეშბექ ბარათი</h3><p>VIVACHE-ს ქეშბექი გროვდება შესულ მომხმარებელზე და გამოიყენება როგორც მაღაზიაში, ისე საიტზე. ქეშბექის პროცენტი და გამოყენების ლიმიტი დამოკიდებულია ბარათის ტიპზე. ქეშბექი ნაღდ ფულად არ გაიცემა.</p>'
+      + '<h3>9. პერსონალური მონაცემები</h3><p>ვამუშავებთ მხოლოდ შეკვეთისა და ანგარიშისთვის საჭირო მონაცემებს (სახელი, ტელეფონი, ელფოსტა, მისამართი) და არ გადავცემთ მესამე პირებს, გარდა მიწოდებისთვის აუცილებელი შემთხვევისა ან კანონით გათვალისწინებული ვალდებულებისა. მონაცემების წაშლა შეგიძლია მოითხოვო მაღაზიასთან დაკავშირებით.</p>'
+      + '<h3>10. კონტაქტი</h3><p>კითხვებისა და პრეტენზიებისთვის დაგვიკავშირდი <a href="/contact">კონტაქტის გვერდიდან</a>.</p>',
+      '<h3>1. General</h3><p>The website is operated by VIVACHE (Batumi, 1 Melikishvili 2nd Lane). By using the site and placing orders you accept these terms.</p><h3>2. Orders & prices</h3><p>Prices are in GEL and include taxes. An order is accepted once it receives a number; we will call you to confirm.</p><h3>3. Returns</h3><p>Unused items can be returned or exchanged within 14 days in original packaging.</p><h3>4. Personal data</h3><p>We only process the data needed for your order and account and do not share it with third parties except for delivery or legal obligations.</p>'),
+    image: '',
+  },
   delivery: {
     title: t('მიწოდება და დაბრუნება', 'Delivery & returns'),
     lead: t('როგორ მუშაობს შეკვეთა, მიწოდება და დაბრუნება.', 'How ordering, delivery and returns work.'),
@@ -138,7 +155,32 @@ const settings = {
     words: t('რვეულები, კალმები, წიგნები, საჩუქრები, სათამაშოები, თავსატეხები, ზურგჩანთები, ფერადი ფანქრები, ბარათები, კონსტრუქტორები', 'Notebooks, Pens, Books, Gifts, Toys, Puzzles, Backpacks, Pencils, Cards, Building sets'),
   },
   newyear: { enabled: true, snow: true, garland: true, santa: true, elves: true, music: true, countdown: true },
-  weather: { enabled: true, city: 'ბათუმი', lat: 41.6168, lon: 41.6367 },
+  weather: { enabled: true, auto: true, city: 'ბათუმი', lat: 41.6168, lon: 41.6367 },
+  // main menu (admin → მენიუ): mega = products dropdown with LIBRA categories
+  menu: [
+    { id: 'products', label: t('პროდუქცია', 'Products'), url: '/shop', mega: true, hidden: false },
+    { id: 'about', label: t('ჩვენს შესახებ', 'About us'), url: '/about', mega: false, hidden: false },
+    { id: 'news', label: t('სიახლეები', 'News'), url: '/news', mega: false, hidden: false },
+    { id: 'contact', label: t('კონტაქტი', 'Contact'), url: '/contact', mega: false, hidden: false },
+  ],
+  // site music (admin → მუსიკა): own tracks (upload / link) + built-in New Year carols
+  music: { enabled: true, autoplay: true, builtin: true, shuffle: false, volume: 0.6, tracks: [] },
+  // product card frame: auto = follows the top strip colours
+  cards: { frame: 'auto', color: '#FF3D7F' },
+  // home page sections (admin → მთავარი გვერდის სექციები): order, visibility, texts
+  sections: [
+    { key: 'hero', enabled: true },
+    { key: 'band', enabled: true },
+    { key: 'top', enabled: true, count: 12, eyebrow: t('ტოპ გაყიდვადი', 'Best sellers'), title: t('პროდუქცია, რომელიც ყველას უყვარს', 'Products everyone loves'),
+      lead: t('ყველაზე გაყიდვადი პროდუქცია ჩვენი მაღაზიიდან — ყოველდღე ახლდება.', 'Our best-selling products — updated every day.'), btn: t('ყველა პროდუქტი', 'All products'), url: '/shop' },
+    { key: 'directions', enabled: false, eyebrow: t('კატეგორიები', 'Categories'), title: t('აირჩიე კატეგორია', 'Pick a category'), lead: t('', ''), btn: t('ყველა პროდუქტი', 'All products'), url: '/shop' },
+    { key: 'hot', enabled: true, count: 8, eyebrow: t('რჩეული', 'Featured'), title: t('ყველაზე პოპულარული', 'Most popular'), lead: t('', ''), btn: t('ყველას ნახვა', 'See all'), url: '/shop' },
+    { key: 'sale', enabled: true, count: 12, eyebrow: t('აქცია', 'Sale'), title: t('ფასდაკლებული პროდუქცია', 'On sale now'), lead: t('', ''), btn: t('ყველას ნახვა', 'See all'), url: '/shop?sale=1' },
+    { key: 'features', enabled: true },
+    { key: 'news', enabled: true, eyebrow: t('ბლოგი', 'Blog'), title: t('სიახლეები და აქციები', 'News & offers'), lead: t('', ''), btn: t('ყველას ნახვა', 'See all'), url: '/news' },
+    { key: 'cashback', enabled: true },
+    { key: 'brands', enabled: true, title: t('ჩვენი ბრენდები', 'Our brands') },
+  ],
   cashback: {
     enabled: true, image: '/assets/img/brand/cashback-card.webp',
     eyebrow: t('ქეშბექ ბარათი', 'Cashback card'),
