@@ -434,3 +434,6 @@ input[readonly].ad-price { background: #F3F6FF; color: var(--ink-3); cursor: not
 .ad-urlpick { display: flex; gap: 6px; min-width: 0; }
 .ad-urlpick input { flex: 1; min-width: 0; }
 .ad-urlpick select { max-width: 150px; }
+
+.ad-mrow.ad-mrow--promo { grid-template-columns: auto 52px 1.7fr 1fr 1.2fr auto; }
+@media (max-width: 860px) { .ad-mrow.ad-mrow--promo { grid-template-columns: auto 52px 1fr; } }

@@ -387,8 +387,15 @@
   function promoBar() {
     var pr = VV.data.settings.promo || {};
     if (!pr.enabled) return '';
+    var now = new Date(), ends = pr.ends ? new Date(pr.ends) : null;
+    if (pr.starts && new Date(pr.starts) > now) return '';                 // აქცია ჯერ არ დაწყებულა
+    if (pr.hide_after_end && ends && ends <= now) return '';               // დასრულდა → ზოლი ქრება
     var bits = [];
-    if (VV.tr(pr.text)) bits.push('<a href="' + VV.esc(pr.link || '/shop') + '"><b>' + VV.esc(VV.tr(pr.text)) + '</b></a>');
+    var items = (pr.items || []).filter(function (it) { return it && VV.tr(it.text); });
+    if (!items.length && VV.tr(pr.text)) items = [{ text: pr.text, link: pr.link }];
+    items.forEach(function (it) {
+      bits.push('<a href="' + VV.esc(it.link || '/shop') + '">' + (it.icon ? VV.esc(it.icon) + ' ' : '') + '<b>' + VV.esc(VV.tr(it.text)) + '</b></a>');
+    });
     if (pr.news) VV.data.news.filter(function (n) { return n.pinned; }).slice(0, 4).forEach(function (n) {
       bits.push('<a href="/post/' + encodeURIComponent(n.id) + '">' + VV.icon('spark', 'icon--sm') + ' ' + VV.esc(VV.tr(n.title)) + '</a>');
     });
@@ -396,9 +403,12 @@
     var set = '<div class="promo__set">' + bits.map(function (b) { return '<span class="promo__item">' + b + '</span>'; }).join('') + '</div>';
     var reps = bits.length < 3 ? 3 : 2, row = '';
     for (var i = 0; i < reps; i++) row += set;
-    var ends = pr.ends ? new Date(pr.ends) : null, timer = ends && ends > new Date() ? '<div class="promo__timer">' + VV.icon('clock', 'icon--sm') + ' <span>' + VV.t('ends_in') + '</span> <b data-countdown="' + ends.toISOString() + '">—</b></div>' : '';
-    return '<div class="promo promo--' + VV.esc(pr.style || 'default') + '" role="region" aria-label="promo">' +
-      '<div class="promo__lane" data-mq data-track=".promo__row" data-speed="-45" data-hover-pause><div class="promo__row">' + row + row + '</div></div>' + timer + '</div>';
+    var timer = pr.timer !== false && ends && ends > now ? '<div class="promo__timer">' + VV.icon('clock', 'icon--sm') + ' <span>' +
+      VV.esc(VV.tr(pr.timer_label) || VV.t('ends_in')) + '</span> <b data-countdown="' + ends.toISOString() + '">—</b></div>' : '';
+    var speed = { slow: -25, normal: -45, fast: -75 }[pr.speed] || -45;
+    var custom = pr.style === 'custom' ? ' style="background:' + VV.esc(pr.bg || '#15171A') + ';color:' + VV.esc(pr.color || '#FFFFFF') + '"' : '';
+    return '<div class="promo promo--' + VV.esc(pr.style || 'default') + '"' + custom + ' role="region" aria-label="promo">' +
+      '<div class="promo__lane" data-mq data-track=".promo__row" data-speed="' + speed + '" data-hover-pause><div class="promo__row">' + row + row + '</div></div>' + timer + '</div>';
   }
 
   function header() {

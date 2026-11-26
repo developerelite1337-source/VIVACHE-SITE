@@ -689,16 +689,32 @@
     const styles = [['default', 'ჩვეულებრივი', 'მუქი'], ['blackfriday', 'შავი პარასკევი', 'შავი + ყვითელი + ტაიმერი'], ['sale', 'აქცია', 'წითელი'], ['news', 'სიახლეები', 'ცისარტყელა']];
     const scopes = [['all', 'ყველა პროდუქცია'], ['hot', 'მხოლოდ რჩეული ★'], ...catTree().map(([id, n, d]) => [id, '— '.repeat(d) + n])];
     const onSale = D().products.filter(disc).length;
+    const pitems = (pr.items && pr.items.length) ? pr.items : (T(pr.text) ? [{ text: pr.text, link: pr.link || '/shop?sale=1', icon: '' }] : []);
+    const itemRow = (it) => `<li class="ad-mrow ad-mrow--promo"><span class="ad-mrow__grip" title="გადაათრიე">⋮⋮</span>
+      <input type="text" data-pk="icon" value="${esc(it.icon || '')}" placeholder="🔥" maxlength="4" aria-label="ემოჯი" style="max-width:48px">
+      <input type="text" data-pk="ka" value="${esc(it.text?.ka || '')}" placeholder="ტექსტი ქართულად" aria-label="ტექსტი">
+      <input type="text" data-pk="en" value="${esc(it.text?.en || '')}" placeholder="English" aria-label="English">
+      <input type="text" data-pk="link" value="${esc(it.link || '')}" placeholder="/shop?sale=1" list="menu-links" aria-label="ბმული">
+      <button type="button" class="ad-btn ad-btn--sm ad-btn--danger-ghost" data-del-item title="წაშლა">${icon('trash')}</button></li>`;
     return {
       title: 'აქციები · შავი პარასკევი',
       html: `<div class="ad-grid2"><div class="ad-stack">
-          <section class="ad-card"><div class="ad-card__head"><h3>ზედა ზოლი (სიახლეები / აქცია)</h3></div>
-            <div class="ad-promo-prev ad-promo-prev--${esc(pr.style || 'default')}" data-prev><span>${esc(T(pr.text))}</span>${pr.ends ? '<em>⏱ ტაიმერი</em>' : ''}</div>
+          <section class="ad-card"><div class="ad-card__head"><h3>ზედა ზოლი — სრული მართვა</h3></div>
+            <div class="ad-promo-prev ad-promo-prev--${esc(pr.style || 'default')}" data-prev><span data-prev-text></span><em data-prev-timer></em></div>
             <form class="ad-form" id="pf">${sw('enabled', 'ზოლი ჩართულია (ყველა გვერდის თავში)', pr.enabled)}
-              ${select('style', 'სტილი', styles.map(([k, l, s]) => [k, `${l} — ${s}`]), pr.style || 'default')}
-              ${trField('text', 'ტექსტი', pr.text, { ph: 'BLACK FRIDAY · ფასდაკლებები 40%-მდე' })}
-              <div class="ad-row2">${field('link', 'ბმული', pr.link, { ph: '/shop?sale=1' })}${field('ends', 'აქციის დასასრული (ტაიმერი)', (pr.ends || '').slice(0, 16), { type: 'datetime-local', hint: 'ცარიელი = ტაიმერის გარეშე' })}</div>
-              ${sw('news', 'ზოლში აჩვენე „ზედა ზოლში“ მონიშნული სიახლეები', pr.news, 'სიახლის რედაქტირებისას: „ზედა ზოლში ჩვენება“')}
+              <h4 style="margin:6px 0">ტექსტები (მოძრაობენ ერთმანეთის მიყოლებით)</h4>
+              <ul class="ad-menu-list" id="pitems">${pitems.map(itemRow).join('')}</ul>
+              <button type="button" class="ad-btn ad-btn--sm" data-add-item>${icon('plus')} ტექსტის დამატება</button>
+              ${sw('news', 'ასევე აჩვენე „ზედა ზოლში“ მონიშნული სიახლეები', pr.news, 'სიახლის რედაქტირებისას: „ზედა ზოლში ჩვენება“')}
+              <h4 style="margin:14px 0 6px">⏱ ტაიმერი</h4>
+              ${sw('timer', 'ტაიმერი ჩართულია', pr.timer !== false)}
+              <div class="ad-row2">${field('ends', 'აქციის დასასრული', (pr.ends || '').slice(0, 16), { type: 'datetime-local', hint: 'ცარიელი = ტაიმერის გარეშე' })}${field('starts', 'აქციის დაწყება (სურვ.)', (pr.starts || '').slice(0, 16), { type: 'datetime-local', hint: 'ზოლი გამოჩნდება მხოლოდ ამ დროიდან' })}</div>
+              ${trField('timer_label', 'ტაიმერის წარწერა', pr.timer_label, { ph: 'დარჩა', hint: 'მაგ.: „დარჩა“, „აქციის დასრულებამდე“, „Black Friday მთავრდება“. ცარიელი = „დარჩა“.' })}
+              ${sw('hide_after_end', 'დასრულების შემდეგ მთელი ზოლი დაიმალოს', pr.hide_after_end, 'გამორთულზე — ქრება მხოლოდ ტაიმერი, ტექსტები რჩება')}
+              <h4 style="margin:14px 0 6px">🎨 იერსახე</h4>
+              <div class="ad-row2">${select('style', 'სტილი', [...styles.map(([k, l, s]) => [k, `${l} — ${s}`]), ['custom', 'ჩემი ფერები — ქვემოთ აირჩიე']], pr.style || 'default')}
+                ${select('speed', 'სიჩქარე', [['slow', 'ნელი'], ['normal', 'ჩვეულებრივი'], ['fast', 'სწრაფი']], pr.speed || 'normal')}</div>
+              <div class="ad-row2" data-custom-colors>${field('bg', 'ფონის ფერი', pr.bg || '#15171A', { type: 'color' })}${field('color', 'ტექსტის ფერი', pr.color || '#FFFFFF', { type: 'color' })}</div>
               <button class="ad-btn ad-btn--accent" type="submit">შენახვა</button></form></section>
         </div><div class="ad-stack">
           <section class="ad-card ad-card--bf"><h3>⚡ შავი პარასკევის რეჟიმი</h3><p class="ad-hint" style="margin:0 0 14px">ერთი ღილაკით: ზედა ზოლი და მთავარი გვერდის ზოლი შავ-ყვითელ სტილზე, ნიშანი „BLACK FRIDAY“, ზოლში მხოლოდ ფასდაკლებული პროდუქცია. ფასდაკლებები ქვემოთ დააყენე.</p>
@@ -711,9 +727,34 @@
         </div></div>`,
       mount(el) {
         const f = $('#pf', el); bindForm(f);
-        const prev = $('[data-prev]', el);
-        f.addEventListener('input', () => { prev.className = 'ad-promo-prev ad-promo-prev--' + f.elements.namedItem('style').value; prev.querySelector('span').textContent = f.elements.namedItem('text.ka').value; });
-        f.addEventListener('submit', async (e) => { e.preventDefault(); try { await saveSettings({ promo: collect(f) }); } catch (x) { fail(x); } });
+        const prev = $('[data-prev]', el), list = $('#pitems', el);
+        if (!$('#menu-links', document)) el.insertAdjacentHTML('beforeend', `<datalist id="menu-links">${linkOptions().map(([u, l]) => `<option value="${esc(u)}">${esc(l)}</option>`).join('')}</datalist>`);
+        if (window.Sortable) Sortable.create(list, { handle: '.ad-mrow__grip', animation: 160, onEnd: () => { dirty(); paint(); } });
+        const items = () => $$('li', list).map((li) => ({ icon: $('[data-pk="icon"]', li).value.trim(), text: { ka: $('[data-pk="ka"]', li).value.trim(), en: $('[data-pk="en"]', li).value.trim() }, link: $('[data-pk="link"]', li).value.trim() || '/shop' }))
+          .filter((it) => it.text.ka || it.text.en);
+        const paint = () => {
+          const st = f.elements.namedItem('style').value;
+          prev.className = 'ad-promo-prev ad-promo-prev--' + st;
+          prev.style.background = st === 'custom' ? f.elements.namedItem('bg').value : '';
+          prev.style.color = st === 'custom' ? f.elements.namedItem('color').value : '';
+          $('[data-prev-text]', prev).textContent = items().map((it) => (it.icon ? it.icon + ' ' : '') + it.text.ka).join('   ✦   ') || '—';
+          const on = f.elements.namedItem('timer').checked && f.elements.namedItem('ends').value;
+          $('[data-prev-timer]', prev).textContent = on ? '⏱ ' + (f.elements.namedItem('timer_label.ka').value || 'დარჩა') + ' 2დ 05:12:40' : '';
+          $('[data-custom-colors]', el).style.display = st === 'custom' ? '' : 'none';
+        };
+        f.addEventListener('input', paint); f.addEventListener('change', paint);
+        el.addEventListener('click', (e) => {
+          if (e.target.closest('[data-add-item]')) { list.insertAdjacentHTML('beforeend', itemRow({ text: {}, link: '/shop' })); $('li:last-child [data-pk="ka"]', list).focus(); dirty(); paint(); }
+          const d = e.target.closest('[data-del-item]'); if (d) { d.closest('li').remove(); dirty(); paint(); }
+        });
+        paint();
+        f.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const x = collect(f);
+          x.items = items();
+          if (x.items[0]) { x.text = x.items[0].text; x.link = x.items[0].link; }       // ძველი ველები — თავსებადობისთვის
+          try { await saveSettings({ promo: x }); } catch (err) { fail(err); }
+        });
         el.addEventListener('click', async (e) => {
           const p = e.target.closest('[data-preset]'); if (!p) return;
           const on = p.dataset.preset === 'bf';
@@ -721,10 +762,10 @@
           const end = new Date(Date.now() + 4 * 864e5).toISOString().slice(0, 10) + 'T23:59';
           try {
             await saveSettings(on ? {
-              promo: { enabled: true, style: 'blackfriday', text: { ka: 'BLACK FRIDAY · ფასდაკლებები 40%-მდე', en: 'BLACK FRIDAY · up to 40% off' }, link: '/shop?sale=1', ends: D().settings.promo?.ends || end, news: true },
+              promo: { enabled: true, style: 'blackfriday', timer: true, text: { ka: 'BLACK FRIDAY · ფასდაკლებები 40%-მდე', en: 'BLACK FRIDAY · up to 40% off' }, link: '/shop?sale=1', items: [{ icon: '⚡', text: { ka: 'BLACK FRIDAY · ფასდაკლებები 40%-მდე', en: 'BLACK FRIDAY · up to 40% off' }, link: '/shop?sale=1' }], ends: D().settings.promo?.ends || end, news: true },
               band: { style: 'blackfriday', badge: 'BLACK FRIDAY', source: 'sale', mode: 'auto', title: { ka: 'შავი პარასკევის შეთავაზებები', en: 'Black Friday deals' }, btn: { ka: 'ყველა ფასდაკლება', en: 'All deals' }, url: '/shop?sale=1' },
             } : {
-              promo: { style: 'news', text: { ka: 'უფასო მიწოდება 100 ₾-დან · სასაჩუქრე შეფუთვა', en: 'Free delivery from 100 GEL · Gift wrapping' }, link: '/shop', ends: '' },
+              promo: { style: 'news', text: { ka: 'უფასო მიწოდება 100 ₾-დან · სასაჩუქრე შეფუთვა', en: 'Free delivery from 100 GEL · Gift wrapping' }, link: '/shop', items: [{ icon: '🎁', text: { ka: 'უფასო მიწოდება 100 ₾-დან · სასაჩუქრე შეფუთვა', en: 'Free delivery from 100 GEL · Gift wrapping' }, link: '/shop' }], ends: '' },
               band: { style: 'default', badge: '', source: 'all', title: { ka: 'ყველა პროდუქტი', en: 'All products' }, btn: { ka: 'ყველა პროდუქტი', en: 'All products' }, url: '/shop' },
             }, on ? 'შავი პარასკევი ჩაირთო ⚡' : 'აქცია დასრულდა');
             route(); renderNav();

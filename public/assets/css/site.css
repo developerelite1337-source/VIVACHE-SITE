@@ -1155,3 +1155,7 @@ html.ny .site-logo { position: relative; }
 .ny-music { background: linear-gradient(135deg, #FF3D7F, #2F6BFF); }
 html.ny .ny-music { background: linear-gradient(135deg, #DC2626, #16A34A); }
 .ny-dock:empty { display: none; }
+
+/* top bar: own colours (admin → აქციები → „ჩემი ფერები“) */
+.promo--custom .promo__timer { background: rgba(0,0,0,.18); }
+.promo--custom a, .promo--custom .promo__timer { color: inherit; }
