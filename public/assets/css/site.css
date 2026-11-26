@@ -1177,3 +1177,10 @@ html.ny .ny-music { background: linear-gradient(135deg, #DC2626, #16A34A); }
 .page-hero--cover .chip--cat { background: rgba(255,255,255,.92); }
 @keyframes vvCoverIn { from { transform: scale(1.06); opacity: .4; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .page-hero__bg img { animation: none; } }
+
+/* cashback levels ladder (LIBRA → ბარათები → დონეები) */
+.cab-ladder { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.cab-step { display: grid; gap: 1px; padding: 6px 10px; border-radius: 12px; background: rgba(255,255,255,.14); border: 2px solid transparent; font-size: 12px; line-height: 1.2; }
+.cab-step b { font-size: 13px; }
+.cab-step small { opacity: .85; }
+.cab-step.is-on { background: var(--c); border-color: #fff; color: #fff; box-shadow: 0 6px 16px -8px rgba(0,0,0,.5); }

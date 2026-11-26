@@ -140,6 +140,7 @@ export function applyShop(settings, shop) {
   const c = s.contact || {};
   s.contact = { ...c, phone: c.phone || info.phone || '', whatsapp: c.whatsapp || info.whatsapp || '' };
   if (!c.hours?.ka && info.hours) s.contact.hours = { ka: info.hours, en: c.hours?.en || '' };
+  if (Array.isArray(shop.levels)) s.levels = shop.levels;        // LIBRA-ს დონეები (სახელი, ბრუნვიდან, %, ფერი)
   s.libra = true;
   return s;
 }

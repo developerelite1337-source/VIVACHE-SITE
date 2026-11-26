@@ -231,6 +231,19 @@
 
   /* ================= cabinet ================= */
   var FLOW = ['new', 'accepted', 'preparing', 'ready', 'done'];
+  /* დონე: LIBRA-დან (me.level_*), ან LIBRA-ს დონეების სიით ბრუნვიდან; ძველი ვერსიისთვის — სტანდარტული საფეხურები */
+  function libraLevel(me, spent) {
+    var L = (VV.data.settings.levels || []).slice().sort(function (a, b) { return a.from_tetri - b.from_tetri; });
+    if (!me.level_name && !L.length) return null;
+    var turn = me.turnover_tetri != null ? me.turnover_tetri / 100 : spent;
+    var i = 0; while (i < L.length - 1 && turn >= L[i + 1].from_tetri / 100) i++;
+    var cur = L[i] || { name: me.level_name, from_tetri: 0, color: me.level_color };
+    var next = me.next_level_name ? { name: me.next_level_name, from_tetri: me.next_level_from } : L[i + 1];
+    var from = (cur.from_tetri || 0) / 100, to = next ? next.from_tetri / 100 : 0;
+    return { i: Math.min(i, 3), name: me.level_name || cur.name, color: me.level_color || cur.color, ladder: L,
+      pct: next ? Math.max(3, Math.min(100, Math.round((turn - from) / Math.max(to - from, 1) * 100))) : 100,
+      next: next ? next.name : '', left: next ? Math.max(0, to - turn) : 0, turnover: turn };
+  }
   function level(spent) {
     var steps = [0, 200, 500, 1500], i = 0;
     while (i < 3 && spent >= steps[i + 1]) i++;
@@ -273,7 +286,8 @@
       var orders = me.orders || [], receipts = me.receipts || [], moves = me.moves || [];
       var spent = (receipts.reduce(function (s, r) { return s + Math.max(0, r.total_tetri); }, 0) + orders.filter(function (o) { return o.status === 'done'; }).reduce(function (s, o) { return s + o.total_tetri; }, 0)) / 100;
       var active = orders.filter(function (o) { return ['done', 'cancelled'].indexOf(o.status) < 0; }).length;
-      var lv = level(spent), name = me.full_name || me.username || '';
+      if (me.turnover_tetri != null && me.level_name) spent = me.turnover_tetri / 100;      // LIBRA-ს მთლიანი ბრუნვა (მაღაზია + საიტი)
+      var lv = libraLevel(me, spent) || level(spent), name = me.full_name || me.username || '';
       var ini = String(name || 'V').trim().split(/\s+/).map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
       tab = tab || VV.qs('tab') || 'overview';
       var c = VV.data.settings.contact || {};
@@ -285,8 +299,9 @@
         '<div class="wrap cab-hero__in"><div class="cab-ava"><span>' + e(ini) + '</span><i class="cab-ava__ring"></i></div>' +
           '<div class="cab-hero__who"><nav class="crumbs crumbs--light"><a href="/">' + VV.t('home') + '</a> <span>/</span> <b>' + t('title') + '</b></nav>' +
           '<h1 class="cab-hello"><small>' + t('hello') + '</small> ' + e(name) + '</h1>' +
-          '<div class="cab-badges"><span class="cab-level cab-level--' + lv.i + '">★ ' + e(lv.name) + '</span>' + (me.earn_pct ? '<span class="cab-since">' + t('since') + ' ' + Number(me.earn_pct) + '%</span>' : '') + (me.card_code ? '<span class="cab-since">' + I('card', 'icon--sm') + ' ' + e(me.card_code) + '</span>' : '') + '</div>' +
-          '<div class="cab-progress"><i style="--p:' + lv.pct + '%"></i><small>' + (lv.next ? lv.next + ' — ' + VV.money(lv.left) + ' ' + t('lvl_next') : t('lvl_top')) + '</small></div></div>' +
+          '<div class="cab-badges"><span class="cab-level cab-level--' + lv.i + '"' + (lv.color ? ' style="background:' + e(lv.color) + ';color:#fff"' : '') + '>★ ' + e(lv.name) + '</span>' + (me.earn_pct ? '<span class="cab-since">' + t('since') + ' ' + Number(me.earn_pct) + '%</span>' : '') + (me.card_code ? '<span class="cab-since">' + I('card', 'icon--sm') + ' ' + e(me.card_code) + '</span>' : '') + '</div>' +
+          '<div class="cab-progress"><i style="--p:' + lv.pct + '%"></i><small>' + (lv.next ? lv.next + ' — ' + VV.money(lv.left) + ' ' + t('lvl_next') : t('lvl_top')) + '</small></div>' +
+          (lv.ladder && lv.ladder.length ? '<div class="cab-ladder">' + lv.ladder.map(function (x) { var on = x.name === lv.name; return '<span class="cab-step' + (on ? ' is-on' : '') + '" style="--c:' + e(x.color || '#fff') + '"><b>' + e(x.name) + '</b><small>' + VV.money(x.from_tetri / 100) + '+ · ' + Number(x.earn_pct) + '%</small></span>'; }).join('') + '</div>' : '') + '</div>' +
           '<button class="btn btn--ghost btn--sm cab-out" type="button" data-logout>' + I('logout', 'icon--sm') + ' ' + t('logout') + '</button></div></div>' +
         '<div class="wrap">' + (welcome ? '<div class="cab-toast is-ok">🎉 ' + t('welcome') + '</div>' : '') +
           '<div class="cab-stats">' +

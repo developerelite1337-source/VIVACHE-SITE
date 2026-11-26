@@ -37,12 +37,13 @@ const shop_settings = [
   { key: 'shop', value: { name: 'VIVACHE', phone: '+995 599 00 00 00', whatsapp: '995599000000', address: 'ბათუმი', hours: 'ორშ–კვ · 10:00–20:00', map_url: '' }, is_public: true },
   { key: 'delivery', value: { courier: true, pickup: true, fee_tetri: 500, free_from_tetri: 5000, min_order_tetri: 0, note: '' }, is_public: true },
   { key: 'guest_orders', value: true, is_public: true },
+  { key: 'levels', value: [{ name: 'სტარტი', from_tetri: 0, earn_pct: 3, color: '#22C55E' }, { name: 'ვერცხლი', from_tetri: 50000, earn_pct: 4, color: '#94A3B8' }, { name: 'ოქრო', from_tetri: 150000, earn_pct: 5, color: '#F59E0B' }, { name: 'ბრილიანტი', from_tetri: 400000, earn_pct: 7, color: '#8B5CF6' }], is_public: true },
   { key: 'payment', value: { cash: true, transfer: true, card: false, iban: 'GE00TB0000000000000000', bank: 'თიბისი', recipient: 'შპს ვივაჩე' }, is_public: true },
 ];
 
 /* ---------- customers / auth ---------- */
 const demoId = U();
-const customers = [{ id: demoId, username: 'demo', password: 'demo1234', email: null, auth_user_id: null, phone: '+995599123456', full_name: 'ნინო ბერიძე', card_code: '8859450163099', bonus_tetri: 1250, earn_pct: 5, max_redeem_pct: 50, status: 'active', created_at: now() }];
+const customers = [{ id: demoId, username: 'demo', password: 'demo1234', email: null, auth_user_id: null, phone: '+995599123456', full_name: 'ნინო ბერიძე', card_code: '8859450163099', bonus_tetri: 1250, earn_pct: 5, max_redeem_pct: 50, status: 'active', created_at: now(), level_name: 'ვერცხლი', level_color: '#94A3B8', turnover_tetri: 82000, next_level_name: 'ოქრო', next_level_from: 150000 }];
 const moves = [{ customer_id: demoId, at: now(), kind: 'earn', amount: 450, note: 'ჩეკი 000123' }, { customer_id: demoId, at: now(), kind: 'earn', amount: 800, note: 'ჩეკი 000101' }];
 const receipts = [{ customer_id: demoId, number: '000123', at: now(), total_tetri: 9000, items: [{ name: 'ფერადი ფანქრები', qty: 2, amount: 2580 }, { name: 'რვეული A5', qty: 4, amount: 1000 }] }];
 const users = []; // Supabase Auth users {id, email, password, meta, confirmed}
@@ -75,6 +76,7 @@ const RPC = {
     return {
       phone: c.phone, full_name: c.full_name, card_code: c.card_code, status: c.status, bonus_tetri: c.bonus_tetri, available_tetri: available(c),
       earn_pct: c.earn_pct, max_redeem_pct: c.max_redeem_pct, username: c.username,
+      level_name: c.level_name ?? null, level_color: c.level_color ?? null, turnover_tetri: c.turnover_tetri ?? 0, next_level_name: c.next_level_name ?? null, next_level_from: c.next_level_from ?? null,
       moves: moves.filter((m) => m.customer_id === cid), receipts: receipts.filter((r) => r.customer_id === cid),
       orders: orders.filter((o) => o.customer_id === cid).slice().reverse().map(({ imported, cashback_settled, customer_id, ...o }) => o),
     };
