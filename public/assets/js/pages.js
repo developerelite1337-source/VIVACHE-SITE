@@ -21,8 +21,22 @@
   function crumbs(list) {
     return '<nav class="crumbs" aria-label="breadcrumbs"><a href="/">' + VV.t('home') + '</a>' + list.map(function (c) { return ' <span>/</span> ' + (c[1] ? '<a href="' + c[1] + '">' + e(c[0]) + '</a>' : '<b>' + e(c[0]) + '</b>'); }).join('') + '</nav>';
   }
-  function pageHero(eyebrow, title, lead, color, extra) {
-    return '<section class="page-hero" style="--t:' + (color || '#FF3D7F') + '"><div class="page-hero__shapes" aria-hidden="true"><i></i><i></i><i></i></div><div class="wrap">' + (extra || '') +
+  /* ქავერი: ადმინის პარამეტრი (settings.covers[key]) → ნაგულისხმევი ფოტო. ტექსტებიც ადმინიდან იცვლება. */
+  var COVERS = { shop: 'shop', news: 'news', contact: 'contact', about: 'about', delivery: 'delivery', terms: 'terms',
+    wishlist: 'wishlist', checkout: 'shop', account: 'wishlist', page: 'interesting' };
+  function coverOf(key, own) {
+    var cv = ((VV.data.settings.covers || {})[key]) || {};
+    if (cv.off) return { cv: cv, img: '' };
+    var def = COVERS[key] || (key.indexOf('p:') === 0 ? COVERS.page : '');
+    return { cv: cv, img: own || cv.image || (def ? '/assets/img/covers/' + def + '.webp' : '') };
+  }
+  function pageHero(eyebrow, title, lead, color, extra, key, ownImg) {
+    var c = key ? coverOf(key, ownImg) : { cv: {}, img: '' };
+    eyebrow = VV.tr(c.cv.eyebrow) || eyebrow; title = VV.tr(c.cv.title) || title; lead = VV.tr(c.cv.lead) || lead;
+    var bg = c.img ? '<div class="page-hero__bg" aria-hidden="true"><img src="' + e(c.img) + '"' +
+      (/\/assets\/img\/covers\/[a-z]+\.webp$/.test(c.img) ? ' srcset="' + e(c.img.replace('.webp', '-sm.webp')) + ' 800w, ' + e(c.img) + ' 1600w" sizes="100vw"' : '') +
+      ' alt="" fetchpriority="high"></div>' : '';
+    return '<section class="page-hero' + (c.img ? ' page-hero--cover' : '') + '" style="--t:' + (color || '#FF3D7F') + '">' + bg + '<div class="page-hero__shapes" aria-hidden="true"><i></i><i></i><i></i></div><div class="wrap">' + (extra || '') +
       '<span class="eyebrow" data-anim="intro">' + e(eyebrow) + '</span><h1 class="h-display" data-split="words">' + e(title) + '</h1>' + (lead ? '<p class="lead" data-anim="intro">' + e(lead) + '</p>' : '') + '</div></section>';
   }
   function newsCard(n, big) {
@@ -355,7 +369,7 @@
     }).join('') + '</ul>';
     var brands = Array.from(new Set(D.products.map(function (p) { return p.brand; }).filter(Boolean))).sort();
 
-    main(pageHero(VV.t('products'), title, lead, color, crumbs(crumbList)).replace('</div></section>', chips + '</div></section>') +
+    main(pageHero(VV.t('products'), title, lead, color, crumbs(crumbList), 'shop', cat && (cat.image || (top && top.image)) || '').replace(/<\/div><\/section>$/, chips + '</div></section>') +
       '<section class="section--tight shop"><div class="wrap shop__grid">' +
         '<aside class="shop__side" id="shop-side"><div class="shop__side-head"><b>' + VV.t('filters') + '</b><button class="tool-btn" type="button" data-close-filters aria-label="' + VV.t('close') + '">' + I('close') + '</button></div>' +
           '<div class="side-block"><h4>' + VV.t('categories') + '</h4>' + tree + '</div>' +
@@ -483,7 +497,7 @@
   P.news = function () {
     VV.setTitle(VV.t('news'));
     var list = VV.data.news;
-    main(pageHero(VV.t('news_eyebrow'), VV.t('news_title'), '', '#8B5CF6', crumbs([[VV.t('news'), '']])) +
+    main(pageHero(VV.t('news_eyebrow'), VV.t('news_title'), '', '#8B5CF6', crumbs([[VV.t('news'), '']]), 'news') +
       '<section class="section--tight"><div class="wrap"><div class="n-grid n-grid--all">' + list.map(function (n, i) { return newsCard(n, i === 0); }).join('') + '</div></div></section>');
   };
   P.article = function () {
@@ -505,7 +519,8 @@
     if (!pg) return P.notfound();
     VV.setTitle(VV.tr(pg.title));
     var st = stats();
-    main(pageHero(VV.data.settings.site.name || 'Vivace', VV.tr(pg.title), VV.tr(pg.lead), pg.color || (key === 'about' ? '#FF3D7F' : key === 'terms' ? '#8B5CF6' : '#2F6BFF'), crumbs([[VV.tr(pg.title), '']])) +
+    main(pageHero(VV.tr(pg.eyebrow) || VV.data.settings.site.name || 'Vivace', VV.tr(pg.title), VV.tr(pg.lead), pg.color || (key === 'about' ? '#FF3D7F' : key === 'terms' ? '#8B5CF6' : '#2F6BFF'), crumbs([[VV.tr(pg.title), '']]),
+      ['about', 'delivery', 'terms'].indexOf(key) > -1 ? key : 'p:' + key, pg.cover || '') +
       '<section class="section--tight"><div class="wrap page-body' + (pg.image ? ' page-body--img' : '') + '"><div class="rich rich--lg" data-anim="reveal">' + VV.tr(pg.text) + '</div>' +
       (pg.image ? '<div class="page-body__img" data-anim="reveal" data-tilt><img src="' + e(pg.image) + '" alt=""></div>' : '') + '</div></section>' +
       (key === 'about' ? '<section class="section--tight"><div class="wrap"><div class="numbers">' +
@@ -525,7 +540,7 @@
     VV.setTitle(VV.t('contact'));
     if (!document.getElementById('contact-form')) main(CONTACT_HTML);
     var hero = document.getElementById('contact-hero');
-    hero.outerHTML = pageHero(VV.t('contact'), VV.t('ct_title'), VV.t('ct_lead'), '#14B8A6', crumbs([[VV.t('contact'), '']]));
+    hero.outerHTML = pageHero(VV.t('contact'), VV.t('ct_title'), VV.t('ct_lead'), '#14B8A6', crumbs([[VV.t('contact'), '']]), 'contact');
     var wa = c.whatsapp ? 'https://wa.me/' + String(c.whatsapp).replace(/\D/g, '') : '';
     var cards = [
       ['pin', VV.t('address'), VV.tr(c.address), mp.link, '#FF3D7F'],
@@ -559,7 +574,7 @@
     VV.setTitle(VV.t('wishlist'));
     function draw() {
       var list = VV.wish.ids().map(VV.product).filter(Boolean);
-      main(pageHero(VV.t('wishlist'), VV.t('wishlist'), '', '#FF3D7F', crumbs([[VV.t('wishlist'), '']])) +
+      main(pageHero(VV.t('wishlist'), VV.t('wishlist'), '', '#FF3D7F', crumbs([[VV.t('wishlist'), '']]), 'wishlist') +
         '<section class="section--tight"><div class="wrap">' + (list.length ? grid(list) :
         '<div class="empty-state">' + I('heart', 'icon--lg') + '<h3>' + VV.t('wish_empty') + '</h3><p>' + VV.t('wish_empty_t') + '</p><a class="btn btn--accent" href="/shop">' + VV.t('products') + '</a></div>') + '</div></section>');
       $$('.p-card').forEach(function (c) { c.style.opacity = 1; c.style.visibility = 'visible'; });
@@ -574,7 +589,7 @@
   P.checkout = function () {
     VV.setTitle(VV.t('co_title'));
     var S = VV.data.settings, shop = S.shop || {}, libra = !!S.auth, me = null;
-    var head = pageHero(VV.t('cart'), VV.t('co_title'), '', '#FFB020', crumbs([[VV.t('co_title'), '']]));
+    var head = pageHero(VV.t('cart'), VV.t('co_title'), '', '#FFB020', crumbs([[VV.t('co_title'), '']]), 'checkout');
     var ka = VV.lang === 'ka';
 
     function render() {

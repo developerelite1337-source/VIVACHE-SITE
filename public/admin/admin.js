@@ -180,6 +180,7 @@
           const box = $(`[data-image="${single}"]`, root); box.dataset.value = await upload(files[0]); renderImage(box);
         }
         dirty(); toast('სურათი აიტვირთა');
+        root.dispatchEvent(new CustomEvent('vv-uploaded'));
       } catch (err) { fail(err); } finally { drop.classList.remove('is-busy'); e.target.value = ''; }
     });
     $$('[data-drop]', root).forEach((d) => {
@@ -866,6 +867,16 @@
       },
     };
   };
+const COVER_IMGS = [['shop', 'მაღაზია'], ['news', 'სიახლეები'], ['contact', 'კონტაქტი'], ['about', 'ჩვენს შესახებ'], ['delivery', 'მიწოდება'], ['terms', 'წესები'], ['wishlist', 'რჩეულები'], ['interesting', 'საინტერესო']]
+    .map(([k, l]) => ['/assets/img/covers/' + k + '.webp', l]);
+  const coverPicker = (name) => `<div class="ad-photos" data-cover-pick="${name}">${COVER_IMGS.map(([p, l]) => `<button type="button" class="ad-photo" data-bg="${p}" title="${l}"><img src="${p.replace('.webp', '-sm.webp')}" alt=""><span>${l}</span></button>`).join('')}</div>`;
+  function bindCoverPick(el, f) {
+    $$('[data-cover-pick]', el).forEach((box) => box.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-bg]'); if (!b) return;
+      const t = $(`[data-image="${box.dataset.coverPick}"]`, f); t.dataset.value = b.dataset.bg; renderImage(t); dirty();
+      f.dispatchEvent(new CustomEvent('vv-uploaded'));
+    }));
+  }
   V.page = (key) => {
     const pg = D().pages[key];
     if (!pg && !PAGES[key]) return notFound();
@@ -873,13 +884,42 @@
     return {
       title: name, crumbs: `<a href="#/pages">გვერდები</a> / ${esc(name)}`,
       actions: `<a class="ad-btn" href="${pageUrl(key)}" target="_blank">${icon('arrow-up-right')} საიტზე</a><button class="ad-btn ad-btn--accent" type="submit" form="f">შენახვა</button>`,
-      html: `<form id="f" class="ad-edit" novalidate><div class="ad-edit__main"><section class="ad-card">${trField('title', 'სათაური', p.title)}${trField('lead', 'შესავალი', p.lead, { type: 'text', rows: 2 })}${trField('text', 'ტექსტი', p.text, { type: 'rich' })}</section></div>
-        <aside class="ad-edit__side"><section class="ad-card"><h3>სურათი</h3>${imageField('image', p.image)}</section>
+      html: `<form id="f" class="ad-edit" novalidate><div class="ad-edit__main"><section class="ad-card"><h3>ქავერი (გვერდის თავი)</h3>
+          ${trField('eyebrow', 'ზედა პატარა წარწერა', p.eyebrow, { ph: 'VIVACHE' })}${trField('title', 'სათაური', p.title)}${trField('lead', 'ქვესათაური', p.lead, { type: 'text', rows: 2 })}</section>
+          <section class="ad-card"><h3>ტექსტი</h3>${trField('text', 'ტექსტი', p.text, { type: 'rich' })}</section></div>
+        <aside class="ad-edit__side"><section class="ad-card"><h3>ქავერის ფოტო</h3><p class="ad-hint" style="margin:-6px 0 10px">დიდი ფოტო გვერდის თავში (ჰორიზონტალური). ცარიელი = სტანდარტული. აირჩიე მზა ან ატვირთე შენი — ინახება ავტომატურად.</p>
+          ${coverPicker('cover')}${imageField('cover', p.cover, 'ჰორიზონტალური ფოტო, მინ. 1600×600')}</section>
+          <section class="ad-card"><h3>სურათი ტექსტის გვერდით</h3>${imageField('image', p.image)}</section>
         <section class="ad-card"><p class="ad-hint" style="margin:0">მისამართი: <a class="ad-link" href="${pageUrl(key)}" target="_blank">${pageUrl(key)}</a><br>მენიუში ჩვენება: <a class="ad-link" href="#/menu">მთავარი მენიუ</a></p></section>
         ${key === 'about' ? '<section class="ad-card"><p class="ad-hint" style="margin:0">რიცხვების ზოლი (პროდუქტი, ბრენდი, წელი, მაღაზია) — <a class="ad-link" href="#/settings">პარამეტრები → რიცხვები</a></p></section>' : ''}</aside></form>`,
       mount(el) {
         const f = $('#f', el); bindForm(f);
-        f.addEventListener('submit', async (e) => { e.preventDefault(); try { A.data.pages = await api('PUT', 'pages/' + key, collect(f)); A.dirty = false; toast('შენახულია'); } catch (x) { fail(x); } });
+        bindCoverPick(el, f);
+        const save = async () => { try { A.data.pages = await api('PUT', 'pages/' + key, collect(f)); A.dirty = false; toast('შენახულია — საიტზე ~1 წუთში'); } catch (x) { fail(x); } };
+        f.addEventListener('submit', (e) => { e.preventDefault(); save(); });
+        f.addEventListener('vv-uploaded', save);
+      },
+    };
+  };
+
+  /* ---------- covers of the built-in pages ---------- */
+  const COVER_PAGES = [['shop', 'პროდუქცია (მაღაზია)', '/shop'], ['news', 'სიახლეები', '/news'], ['contact', 'კონტაქტი', '/contact'],
+    ['wishlist', 'რჩეულები', '/wishlist'], ['checkout', 'კალათა / შეკვეთა', '/checkout']];
+  V.covers = () => {
+    const cv = D().settings.covers || {};
+    return {
+      title: 'გვერდების ქავერები', actions: `<button class="ad-btn ad-btn--accent" type="submit" form="f">შენახვა</button>`,
+      html: `<div class="ad-flash ad-flash--info">${icon('info')} <span>ყოველ გვერდს თავში აქვს დიდი ფოტო (ქავერი) წარწერებით. ცარიელი ველი = სტანდარტული ტექსტი/ფოტო.
+          <b>შენი გვერდების</b> (ჩვენს შესახებ, მიწოდება, წესები, ეს საინტერესოა…) ქავერი — <a class="ad-link" href="#/pages">გვერდები</a>-ში თითოეულზე. <b>კატეგორიის</b> ქავერი — კატეგორიის ფოტო (<a class="ad-link" href="#/categories">კატეგორიები</a>).</span></div>
+        <form id="f" class="ad-stack" novalidate>${COVER_PAGES.map(([k, l, u]) => `<section class="ad-card"><div class="ad-card__head"><h3>${l} <a class="ad-link" href="${u}" target="_blank" style="font-weight:500">${u} ↗</a></h3></div>
+          <div class="ad-grid2"><div>${trField(`${k}.eyebrow`, 'ზედა პატარა წარწერა', cv[k]?.eyebrow)}${trField(`${k}.title`, 'სათაური', cv[k]?.title)}${trField(`${k}.lead`, 'ქვესათაური', cv[k]?.lead, { type: 'text', rows: 2 })}
+            ${sw(`${k}.off`, 'ქავერის ფოტოს გარეშე', cv[k]?.off)}</div>
+          <div>${coverPicker(`${k}.image`)}${imageField(`${k}.image`, cv[k]?.image, 'ცარიელი = სტანდარტული ფოტო')}</div></div></section>`).join('')}</form>`,
+      mount(el) {
+        const f = $('#f', el); bindForm(f); bindCoverPick(el, f);
+        const save = async () => { try { await saveSettings({ covers: collect(f) }, 'შენახულია — საიტზე ~1 წუთში'); } catch (x) { fail(x); } };
+        f.addEventListener('submit', (e) => { e.preventDefault(); save(); });
+        f.addEventListener('vv-uploaded', save);
       },
     };
   };
@@ -1341,6 +1381,7 @@
     '— მთავარი გვერდი',
     ['hero', 'image', 'მთავარი გვერდის ქავერი', '#8B5CF6'],
     ['sections', 'app', 'სექციები (რიგი, ტექსტები)', '#FFB020'],
+    ['covers', 'image', 'გვერდების ქავერები', '#14B8A6'],
     ['band', 'swatch', 'მთავარი გვერდის ზოლი', '#14B8A6'],
     ['promo', 'zap', 'აქციები · შავი პარასკევი', '#FFD400', 'bf'],
     ['newyear', 'tree', 'საახალწლო რეჟიმი', '#22C55E', 'ny'],
@@ -1391,7 +1432,7 @@
     [/^brands$/, V.brands], [/^brands\/(.+)$/, V.brand],
     [/^hero$/, V.heroList], [/^hero\/(.+)$/, V.hero], [/^band$/, V.band], [/^promo$/, V.promo], [/^newyear$/, V.newyear],
     [/^news$/, V.newsList], [/^news\/(.+)$/, V.news], [/^pages$/, V.pagesList], [/^pages\/(.+)$/, V.page], [/^settings$/, V.settings],
-    [/^menu$/, V.menu], [/^sections$/, V.sections], [/^music$/, V.music],
+    [/^menu$/, V.menu], [/^sections$/, V.sections], [/^music$/, V.music], [/^covers$/, V.covers],
   ];
   let routing = 0;
   async function route(keepFocus) {

@@ -331,7 +331,8 @@ async function admin(req, m, p, url) {
   }
   if (a === 'pages' && b && m === 'PUT') {
     const pages = await db.get('pages'); const x = await body(req);
-    pages[b.replace(/[^a-z0-9-]/gi, '')] = { title: tr(x.title, 200), lead: tr(x.lead, 600), text: trHtml(x.text), image: str(x.image, 400) };
+    pages[b.replace(/[^a-z0-9-]/gi, '')] = { title: tr(x.title, 200), lead: tr(x.lead, 600), text: trHtml(x.text), image: str(x.image, 400),
+      cover: str(x.cover, 400), eyebrow: tr(x.eyebrow, 120) };
     await db.put('pages', pages); await purge();
     return json(pages);
   }
