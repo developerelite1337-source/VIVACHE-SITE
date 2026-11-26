@@ -480,7 +480,7 @@
     };
   };
   V.category = (id, q) => {
-    if (D().libra) return libraCategory(id);
+    if (D().libra) return libraCategory(id, q);
     const isNew = id === 'new';
     const c = isNew ? { name: {}, tagline: {}, parent: q.get('parent') || null, color: COLORS[D().categories.length % COLORS.length], icon: '' } : cat(id);
     if (!c) return notFound();
@@ -491,7 +491,7 @@
       html: `<form id="f" class="ad-edit" novalidate><div class="ad-edit__main"><section class="ad-card">
           ${trField('name', 'სახელი', c.name, { required: true })}${trField('tagline', 'მოკლე აღწერა (ჩანს „მიმართულების“ ბარათზე)', c.tagline)}
           ${select('parent', 'მშობელი კატეგორია', [['', '— ზედა დონე (მიმართულება) —'], ...catTree(isNew ? null : c.id).map(([cid, n, d]) => [cid, '— '.repeat(d) + n])], c.parent)}
-          ${isNew ? field('id', 'ID (ბმულისთვის, ლათინურად)', '', { ph: 'მაგ.: notebooks', hint: 'ცარიელი = ავტომატურად. შემდეგ ვეღარ შეიცვლება.' }) : ''}</section></div>
+          ${field('slug', 'მისამართი (ლათინურად)', c.slug || '', { ph: 'მაგ.: outlet', hint: 'საიტზე: <b>/shop?cat=' + esc(c.slug || 'სახელიდან-ავტომატურად') + '</b> — ეს ჩაწერე მენიუში.' })}</section></div>
         <aside class="ad-edit__side"><section class="ad-card"><h3>გარეგნობა</h3>
           <div class="ad-row2">${field('color', 'ფერი', c.color || '#FF3D7F', { type: 'color' })}${field('icon', 'ემოჯი', c.icon, { ph: '✏️', attrs: ' maxlength="8"' })}</div>
           <p class="ad-hint" style="margin:-6px 0 14px">ფერი და ემოჯი ზედა დონის კატეგორიაზე ჩანს: მენიუ, ბარათები, ფილტრები, პროდუქტის ბარათის ფონი.</p>
@@ -848,14 +848,15 @@
     const pages = D().pages || {};
     return [['/shop', 'პროდუქცია (მაღაზია)'], ['/news', 'სიახლეები'], ['/contact', 'კონტაქტი'], ['/about', 'ჩვენს შესახებ'], ['/delivery', 'მიწოდება'], ['/terms', 'წესები და პირობები'], ['/shop?sale=1', 'ფასდაკლებები'], ['/wishlist', 'რჩეულები'],
       ...Object.keys(pages).filter((k) => !PAGES[k]).map((k) => ['/p/' + k, T(pages[k].title) || k]),
-      ...D().categories.filter((c) => !c.parent).map((c) => ['/shop?cat=' + c.id, 'კატეგორია: ' + T(c.name)])];
+      ...catTree().map(([cid, n, d]) => { const c = cat(cid); return ['/shop?cat=' + (c.slug || c.id), 'კატეგორია: ' + '— '.repeat(d) + n]; })];
   }
   V.menu = () => {
     const menu = D().settings.menu || [];
     const row = (m) => `<li class="ad-mrow${m.hidden ? ' is-off' : ''}" data-id="${esc(m.id)}"><span class="ad-mrow__grip" title="გადაათრიე">⋮⋮</span>
       <input type="text" data-k="ka" value="${esc(T(m.label) || m.label?.ka || '')}" placeholder="სახელი" aria-label="სახელი">
       <input type="text" data-k="en" value="${esc(m.label?.en || '')}" placeholder="English" aria-label="English">
-      <input type="text" data-k="url" value="${esc(m.url || '')}" list="menu-links" placeholder="/p/..." aria-label="ბმული">
+      <span class="ad-urlpick"><input type="text" data-k="url" value="${esc(m.url || '')}" list="menu-links" placeholder="/p/..." aria-label="ბმული">
+        <select data-pick title="აირჩიე სიიდან — მისამართი თავისით ჩაიწერება"><option value="">🔗 აირჩიე…</option>${linkOptions().map(([u, l]) => `<option value="${esc(u)}">${esc(l)}</option>`).join('')}</select></span>
       <label class="ad-check" title="ჩამოსაშლელი მენიუ კატეგორიებით"><input type="checkbox" data-k="mega"${m.mega ? ' checked' : ''}> <span>კატეგორიები</span></label>
       <label class="ad-check"><input type="checkbox" data-k="hidden"${m.hidden ? ' checked' : ''}> <span>დამალვა</span></label>
       <button type="button" class="ad-btn ad-btn--sm ad-btn--danger-ghost" data-del-m title="წაშლა">${icon('trash')}</button></li>`;
@@ -864,8 +865,21 @@
       html: `<div class="ad-flash ad-flash--info">${icon('info')} <span>საიტის ზედა მენიუ: გადაათრიე ⋮⋮ რიგის შესაცვლელად, შეცვალე სახელი, ბმული, დამალე ან წაშალე. „კატეგორიები“ — ამ პუნქტზე გამოჩნდება LIBRA-ს კატეგორიების ჩამოსაშლელი მენიუ. ახალი გვერდისთვის (მაგ. „თავსატეხები“) ჯერ შექმენი <a class="ad-link" href="#/pages">გვერდები</a>-ში.</span></div>
         <section class="ad-card"><ul class="ad-menu-list" id="ml">${menu.map(row).join('')}</ul>
           <datalist id="menu-links">${linkOptions().map(([u, l]) => `<option value="${esc(u)}">${esc(l)}</option>`).join('')}</datalist>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="ad-btn ad-btn--sm" data-add-m>${icon('plus')} პუნქტის დამატება</button>
-          <a class="ad-btn ad-btn--sm ad-btn--ghost" href="#/pages">${icon('file')} ახალი გვერდის შექმნა</a></div></section>`,
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="ad-btn ad-btn--sm" data-add-m>${icon('plus')} არსებული გვერდის/კატეგორიის პუნქტი</button>
+          <button type="button" class="ad-btn ad-btn--sm ad-btn--accent" data-new-cat>${icon('plus')} ახალი კატეგორია მენიუში (პროდუქციით)</button>
+          <button type="button" class="ad-btn ad-btn--sm ad-btn--accent" data-new-page>${icon('plus')} ახალი გვერდი მენიუში (ტექსტით)</button></div>
+          <p class="ad-hint" style="margin:10px 0 0">„ახალი კატეგორია“ — მაგ. <b>აუთლეტი</b>: შეიქმნება კატეგორია + მენიუს პუნქტი; პროდუქცია ჩასვი პროდუქტის გვერდზე → „ასევე ჩანდეს კატეგორიებში“.
+            „ახალი გვერდი“ — მაგ. <b>ზღაპრები, გამოცანები, ეს საინტერესოა</b>: შეიქმნება გვერდი + მენიუს პუნქტი, ტექსტს/სურათებს „გვერდებში“ დაწერ.</p></section>
+        <section class="ad-card"><h3>🔗 მისამართები — რა რომელ ბმულზეა</h3><p class="ad-hint" style="margin:-6px 0 10px">ხელით არაფრის ჩაწერა არ გჭირდება — „🔗 აირჩიე…“ სიიდან ირჩევ. თუ მაინც ხელით წერ, ასეა:</p>
+          <table class="ad-table"><tbody>
+            <tr><td>მთავარი</td><td><code>/</code></td></tr><tr><td>ყველა პროდუქცია</td><td><code>/shop</code></td></tr>
+            <tr><td>კატეგორია</td><td><code>/shop?cat=</code><b>მისამართი</b> — მაგ. <code>/shop?cat=outlet</code> (მისამართს ხედავ და ცვლი: კატეგორიები)</td></tr>
+            <tr><td>ფასდაკლებები</td><td><code>/shop?sale=1</code></td></tr><tr><td>ძებნა</td><td><code>/shop?q=</code>სიტყვა — მაგ. <code>/shop?q=ფანქარი</code></td></tr>
+            <tr><td>შენი გვერდი</td><td><code>/p/</code><b>მისამართი</b> — მაგ. <code>/p/zghaprebi</code> (გვერდები)</td></tr>
+            <tr><td>ჩვენს შესახებ · სიახლეები · კონტაქტი</td><td><code>/about</code> · <code>/news</code> · <code>/contact</code></td></tr>
+            <tr><td>მიწოდება · წესები · რჩეულები</td><td><code>/delivery</code> · <code>/terms</code> · <code>/wishlist</code></td></tr>
+          </tbody></table>
+          <p class="ad-hint" style="margin:8px 0 0">მისამართი — მხოლოდ ლათინური ასოები, ციფრები და „-“ (ქართულს თავისით გადაიყვანს: „აუთლეტი“ → <code>autleti</code>).</p></section>`,
       mount(el) {
         const ml = $('#ml', el);
         if (window.Sortable) Sortable.create(ml, { handle: '.ad-mrow__grip', animation: 160, onEnd: dirty });
@@ -873,6 +887,37 @@
         el.addEventListener('click', (e) => {
           if (e.target.closest('[data-add-m]')) { ml.insertAdjacentHTML('beforeend', row({ id: 'm' + Date.now().toString(36), label: { ka: '', en: '' }, url: '' })); $('li:last-child input', ml).focus(); dirty(); }
           const d = e.target.closest('[data-del-m]'); if (d) { d.closest('li').remove(); dirty(); }
+        });
+        el.addEventListener('change', (e) => {
+          const pk = e.target.closest('[data-pick]'); if (!pk || !pk.value) return;
+          const li = pk.closest('li'), url = $('[data-k="url"]', li), ka = $('[data-k="ka"]', li);
+          url.value = pk.value;
+          if (!ka.value.trim()) ka.value = pk.options[pk.selectedIndex].text.replace(/^კატეგორია: (— )*/, '');
+          pk.value = ''; dirty();
+        });
+        const addItem = async (label, url) => {
+          const items = [...(D().settings.menu || []), { id: 'm' + Date.now().toString(36), label: { ka: label, en: '' }, url, mega: false, hidden: false }];
+          await saveSettings({ menu: items }, 'მენიუში დაემატა: ' + label);
+        };
+        $('[data-new-cat]', el).addEventListener('click', async () => {
+          const name = (prompt('ახალი კატეგორიის სახელი (მაგ. აუთლეტი):') || '').trim(); if (!name) return;
+          try {
+            const c = await api('POST', 'categories', { name: { ka: name, en: '' } });
+            A.data.categories = (await api('GET', 'data')).categories;
+            const fresh = A.data.categories.find((y) => y.id === c.id || (y.merged || []).includes(c.id));
+            await addItem(name, '/shop?cat=' + (fresh ? fresh.slug : slugJs(name)));
+            route();
+          } catch (x) { fail(x); }
+        });
+        $('[data-new-page]', el).addEventListener('click', async () => {
+          const name = (prompt('ახალი გვერდის სახელი (მაგ. ზღაპრები):') || '').trim(); if (!name) return;
+          const key = slugJs(name) || ('page-' + Date.now().toString(36));
+          try {
+            if ((D().pages || {})[key] || PAGES[key]) throw new Error('ასეთი გვერდი უკვე არსებობს: /p/' + key);
+            A.data.pages = await api('PUT', 'pages/' + key, { title: { ka: name, en: '' }, lead: {}, text: { ka: '<p>' + esc(name) + '</p>', en: '' } });
+            await addItem(name, '/p/' + key);
+            go('#/pages/' + key);
+          } catch (x) { fail(x); }
         });
         $('[data-save-menu]', document).addEventListener('click', async () => {
           const items = $$('li', ml).map((li) => {
@@ -1038,6 +1083,9 @@
             <input type="hidden" name="price" value="${p.price}"></section>
           <section class="ad-card"><h3>ნიშნები</h3>${sw('hot', 'რჩეული ★ (მთავარ გვერდზე)', p.hot)}${sw('isNew', '„ახალი“ ნიშანი', p.isNew)}${sw('hidden', 'საიტზე დამალვა', p.hidden)}
             <div class="ad-row2">${field('age', 'ასაკი', p.age, { ph: '3+' })}${field('sort', 'რიგითობა', p.sort ?? 0, { type: 'number' })}</div></section>
+          <section class="ad-card"><h3>ასევე ჩანდეს კატეგორიებში</h3><p class="ad-hint" style="margin:-6px 0 10px">მაგ. „აუთლეტი“, „ეს საინტერესოა“ — პროდუქტი თავის კატეგორიაშიც დარჩება.</p>
+            <div data-ignore class="ad-catpick">${catTree().filter(([cid]) => cid !== p.category_id).map(([cid, n, d]) => `<label class="ad-check"><input type="checkbox" data-extra-cat value="${esc(cid)}"${(p.cats || []).includes(cid) ? ' checked' : ''}> <span>${'— '.repeat(d)}${esc(n)}</span></label>`).join('') || '<p class="ad-hint">ჯერ შექმენი კატეგორია.</p>'}</div>
+            <a class="ad-link" href="#/categories/new">+ ახალი კატეგორია</a></section>
           <section class="ad-card"><h3>ფოტოები</h3>${p.images[0] ? `<figure class="ad-img ad-img--libra"><img src="${esc(p.images[0])}" alt=""></figure><p class="ad-hint" style="margin:0 0 10px">მთავარი ფოტო — LIBRA-დან. ქვემოთ დაამატე დამატებითი.</p>` : '<p class="ad-hint">Libra-ში ფოტო არ აქვს — დაამატე Libra-ში ან აქ.</p>'}${imagesField('images', extra)}</section>
         </aside></form>`,
       mount(el) {
@@ -1048,6 +1096,7 @@
         f.addEventListener('submit', async (e) => {
           e.preventDefault();
           const x = collect(f); x.name_en = x.name?.en || ''; delete x.name;
+          x.cats = $$('[data-extra-cat]:checked', f).map((i) => i.value);
           try { const item = await api('PUT', 'products/' + id, x); upsert('products', item); A.dirty = false; toast('შენახულია'); route(); } catch (err) { fail(err); }
         });
       },
@@ -1055,36 +1104,67 @@
   }
 
   /* ---------- LIBRA categories: tree from Libra, appearance from the site ---------- */
+  /* ---------- categories (LIBRA mode): LIBRA's tree + the site's own categories, merged by name ---------- */
+  const catLink = (c) => '/shop?cat=' + (c.slug || c.id);
+  const slugJs = (s) => String(s || '').toLowerCase().trim()
+    .replace(/[ა-ჰ]/g, (ch) => ({ ა: 'a', ბ: 'b', გ: 'g', დ: 'd', ე: 'e', ვ: 'v', ზ: 'z', თ: 't', ი: 'i', კ: 'k', ლ: 'l', მ: 'm', ნ: 'n', ო: 'o', პ: 'p', ჟ: 'zh', რ: 'r', ს: 's', ტ: 't', უ: 'u', ფ: 'p', ქ: 'k', ღ: 'gh', ყ: 'k', შ: 'sh', ჩ: 'ch', ც: 'ts', ძ: 'dz', წ: 'ts', ჭ: 'ch', ხ: 'kh', ჯ: 'j', ჰ: 'h' }[ch] || ''))
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
   function libraCategories() {
-    const count = (id) => D().products.filter((p) => desc(id).includes(p.category_id)).length;
+    const count = (id) => D().products.filter((p) => desc(id).includes(p.category_id) || (p.cats || []).some((x) => desc(id).includes(x))).length;
     const tree = (pid) => { const ks = kids(pid); return ks.length ? `<ul class="ad-tree">${ks.map((c) => `<li><div class="ad-tree__row${c.hidden ? ' is-hidden' : ''}">
         ${!c.parent && c.image ? `<span class="ad-tree__pic"><img src="${esc(c.image)}" alt=""></span>` : ''}<span class="ad-tree__dot" style="--c:${c.parent ? '#fff' : esc(c.color)}">${esc(c.icon || '')}</span>
-        <a class="ad-tree__name" href="#/categories/${esc(c.id)}">${esc(T(c.name))}</a><span class="ad-tree__count" title="პროდუქტი">${count(c.id)}</span>
-        <a class="ad-btn ad-btn--sm ad-btn--ghost" href="#/categories/${esc(c.id)}">იერსახე</a></div>${tree(c.id)}</li>`).join('')}</ul>` : ''; };
+        <a class="ad-tree__name" href="#/categories/${esc(c.id)}">${esc(T(c.name))}</a>
+        ${c.site ? '<span class="ad-tag">საიტის</span>' : ''}${(c.merged || []).length ? `<span class="ad-tag" title="იგივე სახელის კატეგორიები ერთად ჩანს">შერწყმული ×${c.merged.length + 1}</span>` : ''}
+        <code class="ad-link" title="ეს მისამართი ჩაწერე მენიუში ან ღილაკზე">${esc(catLink(c))}</code>
+        <button type="button" class="ad-btn ad-btn--sm ad-btn--ghost" data-copy="${esc(catLink(c))}" title="მისამართის კოპირება">⧉</button>
+        <span class="ad-tree__count" title="პროდუქტი">${count(c.id)}</span>
+        <a class="ad-btn ad-btn--sm ad-btn--ghost" href="#/categories/new?parent=${esc(c.id)}" title="ქვეკატეგორია">${icon('plus')}</a>
+        <a class="ad-btn ad-btn--sm ad-btn--ghost" href="#/categories/${esc(c.id)}">რედაქტირება</a></div>${tree(c.id)}</li>`).join('')}</ul>` : ''; };
     return {
-      title: 'კატეგორიები', actions: '<span class="ad-tag ad-tag--libra">LIBRA FINANCE</span>',
-      html: `<div class="ad-flash ad-flash--info">${icon('info')} <span>კატეგორიები და ქვეკატეგორიები მოდის <b>LIBRA FINANCE</b>-დან და ავტომატურად ერწყმის საიტს: ახალი კატეგორია Libra-ში → საიტზე ~1 წუთში, პროდუქცია თავის ადგილას. აქ ცვლი იერსახეს: ფერი, ემოჯი, ფოტო, აღწერა, ინგლისური სახელი, დამალვა, რიგითობა.</span></div>
-        <section class="ad-card">${tree(null) || `<div class="ad-empty"><p>Libra-დან კატეგორიები ჯერ არ მოსულა. შეამოწმე Libra → ონლაინ მაღაზია → სინქრონიზაცია.</p></div>`}</section>`,
+      title: 'კატეგორიები', actions: `<a class="ad-btn ad-btn--accent" href="#/categories/new">${icon('plus')} ახალი კატეგორია</a>`,
+      html: `<div class="ad-flash ad-flash--info">${icon('info')} <span>აქ ჩანს <b>LIBRA FINANCE</b>-ის კატეგორიებიც და საიტზე დამატებულიც. <b>იგივე სახელი = ერთი კატეგორია</b>: თუ აქ შექმნი „აუთლეტს“ და მერე Libra-შიც გაჩნდება „აუთლეტი“, ავტომატურად შეერწყმიან (Libra-ში ორჯერ ჩაწერილი სახელიც ერთად ჩანს).
+          პროდუქცია Libra-ს კატეგორიიდან თავისით ჩანს; საიტის კატეგორიაში (მაგ. აუთლეტი) პროდუქტს მონიშნავ პროდუქტის გვერდზე → „ასევე ჩანდეს კატეგორიებში“. ყოველ კატეგორიას აქვს ლათინური <b>მისამართი</b> — <code>/shop?cat=…</code>.</span></div>
+        <section class="ad-card">${tree(null) || `<div class="ad-empty"><p>კატეგორიები ჯერ არ არის — დააჭირე „ახალი კატეგორია“.</p></div>`}</section>`,
+      mount(el) {
+        el.addEventListener('click', (e) => {
+          const cp = e.target.closest('[data-copy]'); if (!cp) return;
+          navigator.clipboard.writeText(cp.dataset.copy).then(() => toast('დაკოპირდა: ' + cp.dataset.copy));
+        });
+      },
     };
   }
-  function libraCategory(id) {
-    const c = cat(id);
+  function libraCategory(id, q) {
+    const isNew = id === 'new';
+    const c = isNew ? { site: true, name: {}, tagline: {}, parent: (q && q.get('parent')) || null, color: COLORS[D().categories.length % COLORS.length], icon: '', slug: '' } : cat(id);
     if (!c) return notFound();
+    const own = !!c.site;                                      // საიტის კატეგორია — ყველაფერი იცვლება
     const top = !c.parent;
+    const title = isNew ? 'ახალი კატეგორია' : T(c.name);
+    const parents = [['', '— ზედა დონე (მთავარი კატეგორია) —'], ...catTree(isNew ? null : c.id).map(([cid, n, d]) => [cid, '— '.repeat(d) + n])];
     return {
-      title: T(c.name), crumbs: `<a href="#/categories">კატეგორიები</a> / ${esc(T(c.name))}`,
-      actions: `<a class="ad-btn" href="/shop?cat=${esc(c.id)}" target="_blank">${icon('arrow-up-right')} საიტზე</a><button class="ad-btn ad-btn--accent" type="submit" form="f">შენახვა</button>`,
+      title, crumbs: `<a href="#/categories">კატეგორიები</a> / ${esc(title)}`,
+      actions: `${!isNew ? `<a class="ad-btn" href="${esc(catLink(c))}" target="_blank">${icon('arrow-up-right')} საიტზე</a>` : ''}<button class="ad-btn ad-btn--accent" type="submit" form="f">${isNew ? 'შექმნა' : 'შენახვა'}</button>`,
       html: `<form id="f" class="ad-edit" novalidate><div class="ad-edit__main"><section class="ad-card">
-          <div class="ad-row2">${ro('სახელი', esc(c.name.ka))}${ro('მშობელი კატეგორია', c.parent ? esc(T(cat(c.parent)?.name)) : 'ზედა დონე (მიმართულება)')}</div>
-          ${field('name.en', 'სახელი ინგლისურად', c.name.en, { ph: 'English name' })}
+          ${own ? trField('name', 'სახელი', c.name, { required: true, hint: 'Libra-ში იგივე სახელის კატეგორია თუ არის/გაჩნდება — ავტომატურად შეერწყმება.' })
+                : `<div class="ad-row2">${ro('სახელი', esc(c.name.ka))}${ro('მშობელი კატეგორია', c.parent ? esc(T(cat(c.parent)?.name)) : 'ზედა დონე')}</div>
+                   ${field('name.en', 'სახელი ინგლისურად', c.name.en, { ph: 'English name' })}`}
+          ${own ? select('parent', 'მშობელი კატეგორია', parents, c.parent) : ''}
+          ${field('slug', 'მისამართი (ლათინურად)', c.slug || '', { ph: 'მაგ.: outlet', attrs: ' data-slug', hint: `საიტზე: <b data-slug-prev>${esc(catLink(c))}</b> — ცარიელი = სახელიდან ავტომატურად. ეს ჩაწერე მენიუში.` })}
           ${trField('tagline', 'მოკლე აღწერა (ჩანს კატეგორიის ბარათზე)', c.tagline)}
-          ${field('sort', 'რიგითობა საიტზე', c.sort ?? '', { type: 'number', hint: 'ცარიელი = Libra-ს რიგი. ნაკლები = წინ.' })}</section></div>
+          ${field('sort', 'რიგითობა საიტზე', c.sort ?? '', { type: 'number', hint: 'ნაკლები = წინ.' })}</section></div>
         <aside class="ad-edit__side"><section class="ad-card"><h3>გარეგნობა</h3>
           <div class="ad-row2">${field('color', 'ფერი', c.color || '#FF3D7F', { type: 'color' })}${field('icon', 'ემოჯი', c.icon, { ph: '✏️', attrs: ' maxlength="8"' })}</div>
-          ${top ? `<span class="ad-field"><span>ბარათის ფოტო</span></span><div class="ad-photos" data-photo-pick>${PHOTOS.map(([p, l]) => `<button type="button" class="ad-photo${c.image === p ? ' is-on' : ''}" data-bg="${p}" title="${l}"><img src="${p.replace('.webp', '-sm.webp')}" alt=""><span>${l}</span></button>`).join('')}</div>${imageField('image', c.image, 'ან ატვირთე შენი ფოტო')}` : '<p class="ad-hint">ფოტო და ფერი ძირითადად ზედა დონის კატეგორიაზე ჩანს.</p>'}
-          ${sw('hidden', 'საიტზე დამალვა', c.hidden)}</section></aside></form>`,
+          ${top || isNew ? `<span class="ad-field"><span>ბარათის ფოტო</span></span><div class="ad-photos" data-photo-pick>${PHOTOS.map(([p, l]) => `<button type="button" class="ad-photo${c.image === p ? ' is-on' : ''}" data-bg="${p}" title="${l}"><img src="${p.replace('.webp', '-sm.webp')}" alt=""><span>${l}</span></button>`).join('')}</div>${imageField('image', c.image, 'ან ატვირთე შენი ფოტო')}` : '<p class="ad-hint">ფოტო და ფერი ძირითადად ზედა დონის კატეგორიაზე ჩანს.</p>'}
+          ${sw('hidden', 'საიტზე დამალვა', c.hidden)}</section>
+          ${own && !isNew ? `<section class="ad-card ad-card--danger"><h3>წაშლა</h3><p class="ad-hint" style="margin:0 0 10px">პროდუქცია არ იშლება — უბრალოდ აღარ ჩანს ამ კატეგორიაში.</p><button type="button" class="ad-btn ad-btn--danger-ghost ad-btn--sm" data-del>${icon('trash')} კატეგორიის წაშლა</button></section>` : ''}
+          ${!own ? `<section class="ad-card"><p class="ad-hint" style="margin:0">${libraTag} სახელი და მშობელი იცვლება LIBRA FINANCE-ში. წაშლაც — Libra-ში (ან აქ მონიშნე „დამალვა“).</p></section>` : ''}
+        </aside></form>`,
       mount(el) {
         const f = $('#f', el); bindForm(f);
+        const sl = $('[data-slug]', el), prev = $('[data-slug-prev]', el);
+        const nameIn = f.elements.namedItem('name.ka');
+        const upd = () => { prev.textContent = '/shop?cat=' + (slugJs(sl.value) || slugJs(nameIn ? nameIn.value : T(c.name)) || '…'); };
+        sl.addEventListener('input', upd); if (nameIn) nameIn.addEventListener('input', upd);
         const pick = $('[data-photo-pick]', el);
         if (pick) pick.addEventListener('click', (e) => {
           const b = e.target.closest('[data-bg]'); if (!b) return;
@@ -1093,8 +1173,20 @@
         });
         f.addEventListener('submit', async (e) => {
           e.preventDefault();
-          const x = collect(f); x.name_en = x.name?.en || ''; delete x.name;
-          try { const item = await api('PUT', 'categories/' + id, x); upsert('categories', item); A.dirty = false; toast('შენახულია'); route(); } catch (err) { fail(err); }
+          const x = collect(f);
+          if (!own) { x.name_en = x.name?.en || ''; delete x.name; }
+          try {
+            const item = await api(isNew ? 'POST' : 'PUT', isNew ? 'categories' : 'categories/' + id, x);
+            A.data.categories = (await api('GET', 'data')).categories; A.dirty = false;
+            toast(isNew ? 'კატეგორია შეიქმნა' : 'შენახულია');
+            const fresh = A.data.categories.find((y) => y.id === item.id || (y.merged || []).includes(item.id));
+            go('#/categories/' + (fresh ? fresh.id : ''));
+          } catch (err) { fail(err); }
+        });
+        const del = $('[data-del]', el);
+        if (del) del.addEventListener('click', async () => {
+          if (!(await confirmBox(`კატეგორია „${title}“ წაიშლება საიტიდან.`))) return;
+          try { await api('DELETE', 'categories/' + id); await reload(); go('#/categories'); toast('წაიშალა'); } catch (x) { fail(x); }
         });
       },
     };

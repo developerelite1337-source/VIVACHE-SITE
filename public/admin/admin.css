@@ -427,3 +427,10 @@ input[readonly].ad-price { background: #F3F6FF; color: var(--ink-3); cursor: not
 .ad-sec__acts { display: flex; gap: 6px; }
 .ad-sec__body { padding: 4px 14px 14px; border-top: 1px dashed var(--line); }
 @media (max-width: 860px) { .ad-mrow, #tl .ad-mrow { grid-template-columns: auto 1fr 1fr; } }
+
+/* category addresses, extra categories, menu link picker */
+.ad-tree__row code.ad-link { font-size: 12px; opacity: .8; margin-left: auto; }
+.ad-catpick { max-height: 220px; overflow: auto; display: grid; gap: 4px; margin-bottom: 8px; }
+.ad-urlpick { display: flex; gap: 6px; min-width: 0; }
+.ad-urlpick input { flex: 1; min-width: 0; }
+.ad-urlpick select { max-width: 150px; }

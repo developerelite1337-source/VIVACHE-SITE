@@ -256,7 +256,7 @@
       '<div class="dir-grid">' + cats.map(function (c, i) {
         var prods = VV.data.products.filter(function (p) { return VV.inCat(p, c.id); });
         var imgs = prods.filter(VV.img).slice(0, 3);
-        return '<a class="dir-card" href="/shop?cat=' + c.id + '" style="--t:' + (c.color || COLORS[i % COLORS.length]) + '" data-anim="item" data-tilt>' +
+        return '<a class="dir-card" href="' + VV.catUrl(c) + '" style="--t:' + (c.color || COLORS[i % COLORS.length]) + '" data-anim="item" data-tilt>' +
           '<div class="dir-card__media"><span class="dir-card__icon">' + e(c.icon || '★') + '</span>' +
             (c.image ? '<img class="dir-card__cover" src="' + e(c.image) + '" alt="" loading="lazy"><span class="dir-card__shade"></span>' : imgs.map(function (p, k) { return '<img class="dir-card__p dir-card__p--' + k + '" src="' + e(VV.img(p)) + '" alt="" loading="lazy">'; }).join('')) +
           '</div><div class="dir-card__body"><h3 class="dir-card__title">' + e(VV.tr(c.name)) + '</h3><p class="dir-card__tag">' + e(VV.tr(c.tagline)) + '</p>' +
@@ -341,17 +341,17 @@
     var title = cat ? VV.tr(cat.name) : st.sale ? VV.t('sale') : VV.t('products');
     VV.setTitle(title);
     var crumbList = [[VV.t('products'), cat || st.sale ? '/shop' : '']];
-    if (cat && top && top.id !== cat.id) crumbList.push([VV.tr(top.name), '/shop?cat=' + top.id]);
+    if (cat && top && top.id !== cat.id) crumbList.push([VV.tr(top.name), VV.catUrl(top)]);
     if (cat) crumbList.push([VV.tr(cat.name), '']);
     var subs = cat ? VV.children(cat.id) : VV.topCats();
-    var chips = subs.length ? '<div class="chips" data-anim="intro">' + subs.map(function (s) { return '<a class="chip chip--cat" style="--t:' + VV.catColor(s.id) + '" href="/shop?cat=' + s.id + '">' + e(s.icon ? s.icon + ' ' : '') + e(VV.tr(s.name)) + '</a>'; }).join('') + '</div>' : '';
+    var chips = subs.length ? '<div class="chips" data-anim="intro">' + subs.map(function (s) { return '<a class="chip chip--cat" style="--t:' + VV.catColor(s.id) + '" href="' + VV.catUrl(s) + '">' + e(s.icon ? s.icon + ' ' : '') + e(VV.tr(s.name)) + '</a>'; }).join('') + '</div>' : '';
     var lead = cat ? VV.tr(cat.tagline) : '';
 
     var tree = '<ul class="tree"><li><a href="/shop" class="' + (!st.cat ? 'is-on' : '') + '">' + VV.t('all_products') + ' <em>' + D.products.length + '</em></a></li>' + VV.topCats().map(function (c) {
       var n = D.products.filter(function (p) { return VV.inCat(p, c.id); }).length;
       var open = cat && (cat.id === c.id || (top && top.id === c.id));
-      return '<li style="--t:' + c.color + '"><a href="/shop?cat=' + c.id + '" class="' + (st.cat === c.id ? 'is-on' : '') + '"><i></i>' + e(VV.tr(c.name)) + ' <em>' + n + '</em></a>' +
-        (open ? '<ul>' + VV.children(c.id).map(function (s) { return '<li><a href="/shop?cat=' + s.id + '" class="' + (st.cat === s.id ? 'is-on' : '') + '">' + e(VV.tr(s.name)) + ' <em>' + D.products.filter(function (p) { return VV.inCat(p, s.id); }).length + '</em></a></li>'; }).join('') + '</ul>' : '') + '</li>';
+      return '<li style="--t:' + c.color + '"><a href="' + VV.catUrl(c) + '" class="' + (cat && cat.id === c.id ? 'is-on' : '') + '"><i></i>' + e(VV.tr(c.name)) + ' <em>' + n + '</em></a>' +
+        (open ? '<ul>' + VV.children(c.id).map(function (s) { return '<li><a href="' + VV.catUrl(s) + '" class="' + (cat && cat.id === s.id ? 'is-on' : '') + '">' + e(VV.tr(s.name)) + ' <em>' + D.products.filter(function (p) { return VV.inCat(p, s.id); }).length + '</em></a></li>'; }).join('') + '</ul>' : '') + '</li>';
     }).join('') + '</ul>';
     var brands = Array.from(new Set(D.products.map(function (p) { return p.brand; }).filter(Boolean))).sort();
 
@@ -418,8 +418,8 @@
     var vs = VV.variants(p), d = VV.disc(p), imgs = (p.images || []).length ? p.images : [''];
     VV.setTitle(name);
     var cl = [[VV.t('shop'), '/shop']];
-    if (top && top !== cat) cl.push([VV.tr(top.name), '/shop?cat=' + top.id]);
-    if (cat) cl.push([VV.tr(cat.name), '/shop?cat=' + cat.id]);
+    if (top && top !== cat) cl.push([VV.tr(top.name), VV.catUrl(top)]);
+    if (cat) cl.push([VV.tr(cat.name), VV.catUrl(cat)]);
     cl.push([name, '']);
     var stock = !VV.inStock(p) ? '<span class="status status--out">' + VV.t('out_stock') + '</span>' : p.price ? '<span class="status status--ok">' + VV.t('in_stock') + '</span>' : '<span class="status status--ask">' + VV.t('preorder') + '</span>';
     var related = sortProducts(VV.data.products.filter(function (x) { return x.id !== p.id && top && VV.inCat(x, top.id); })).slice(0, 4);
@@ -450,7 +450,7 @@
             '<div class="rich" data-pane="del" hidden><ul><li>' + VV.t('del_1') + '</li><li>' + VV.t('del_2') + '</li><li>' + VV.t('del_3') + '</li></ul><p><a class="link-arrow" href="/delivery">' + VV.t('delivery') + ' ' + I('arrow-right', 'icon--sm') + '</a></p></div></div>' +
           '<button type="button" class="share-btn" id="pd-share">' + I('share', 'icon--sm') + ' ' + VV.t('share') + '</button>' +
         '</div></div></div></section>' +
-      (related.length ? '<section class="section--tight"><div class="wrap">' + sectionHead(VV.tr(top.name), VV.t('related'), '', [VV.t('see_all'), '/shop?cat=' + top.id]) + grid(related) + '</div></section>' : ''));
+      (related.length ? '<section class="section--tight"><div class="wrap">' + sectionHead(VV.tr(top.name), VV.t('related'), '', [VV.t('see_all'), VV.catUrl(top)]) + grid(related) + '</div></section>' : ''));
 
     var vi = 0;
     function price() {

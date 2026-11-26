@@ -56,7 +56,14 @@
 
   /* ---------------- catalogue helpers ---------------- */
   VV.data = null;
-  VV.cat = function (id) { return (VV.data.categories || []).find(function (c) { return c.id === id; }); };
+  // id ან ლათინური მისამართი (slug): /shop?cat=autleti — ძველი ბმულებიც (id-ით) მუშაობს
+  VV.cat = function (id) {
+    if (!id) return null;
+    var list = VV.data.categories || [];
+    return list.find(function (c) { return c.id === id; }) || list.find(function (c) { return c.slug === id; })
+      || list.find(function (c) { return (c.merged || []).indexOf(id) > -1; }) || null;
+  };
+  VV.catUrl = function (c) { c = typeof c === 'string' ? VV.cat(c) : c; return c ? '/shop?cat=' + encodeURIComponent(c.slug || c.id) : '/shop'; };
   VV.topCats = function () {
     return VV.data.categories.filter(function (c) { return !c.parent; }).sort(function (a, b) { return (a.sort || 0) - (b.sort || 0); });
   };
@@ -64,6 +71,7 @@
     return VV.data.categories.filter(function (c) { return c.parent === id; }).sort(function (a, b) { return (a.sort || 0) - (b.sort || 0); });
   };
   VV.descendants = function (id) {
+    var cc = VV.cat(id); if (cc) id = cc.id;
     var out = [id];
     VV.children(id).forEach(function (c) { out = out.concat(VV.descendants(c.id)); });
     return out;
@@ -79,7 +87,10 @@
     var top = VV.topOf(id);
     return (top && top.color) || '#FF3D7F';
   };
-  VV.inCat = function (p, catId) { return VV.descendants(catId).indexOf(p.category_id) > -1; };
+  VV.inCat = function (p, catId) {
+    var ds = VV.descendants(catId);
+    return ds.indexOf(p.category_id) > -1 || (p.cats || []).some(function (x) { return ds.indexOf(x) > -1; });
+  };
   // variant lines hold REGULAR prices; a product discount (old_price → price) applies to every variant
   VV.variants = function (p) {
     var ratio = p.old_price && p.price && p.old_price > p.price ? p.price / p.old_price : 1;
@@ -393,8 +404,8 @@
   function header() {
     var top = VV.topCats(), path = location.pathname, cat = VV.qs('cat');
     var mega = top.map(function (c) {
-      return '<div class="mega__group" style="--t:' + (c.color || '#FF3D7F') + '"><a class="mega__title" href="/shop?cat=' + c.id + '"><span class="mega__ic">' + VV.esc(c.icon || '•') + '</span>' + VV.esc(VV.tr(c.name)) + '</a>' +
-        '<ul class="mega__list">' + VV.children(c.id).map(function (s) { return '<li><a href="/shop?cat=' + s.id + '">' + VV.esc(VV.tr(s.name)) + '</a></li>'; }).join('') + '</ul></div>';
+      return '<div class="mega__group" style="--t:' + (c.color || '#FF3D7F') + '"><a class="mega__title" href="' + VV.catUrl(c) + '"><span class="mega__ic">' + VV.esc(c.icon || '•') + '</span>' + VV.esc(VV.tr(c.name)) + '</a>' +
+        '<ul class="mega__list">' + VV.children(c.id).map(function (s) { return '<li><a href="' + VV.catUrl(s) + '">' + VV.esc(VV.tr(s.name)) + '</a></li>'; }).join('') + '</ul></div>';
     }).join('');
     var menu = (VV.data.settings.menu || []).filter(function (m) { return !m.hidden && (VV.tr(m.label) || m.mega); });
     mega += '<div class="mega__foot"><a class="btn btn--accent btn--sm" href="/shop">' + VV.t('all_products') + ' ' + VV.icon('arrow-right', 'icon--sm') + '</a><a class="btn btn--ghost btn--sm" href="/shop?sale=1">' + VV.t('sale') + '</a></div>';
@@ -435,7 +446,7 @@
         '<div class="drawer__panel" role="dialog" aria-modal="true" aria-label="' + VV.t('menu') + '">' +
           '<div class="drawer__head">' + logo('logo-word--sm') + '<button class="tool-btn" type="button" data-drawer-close aria-label="' + VV.t('close') + '">' + VV.icon('close') + '</button></div>' +
           '<div class="drawer__body"><div class="m-cats">' + top.map(function (c) {
-            return '<a class="m-cat" style="--t:' + (c.color || '#FF3D7F') + '" href="/shop?cat=' + c.id + '"><span>' + VV.esc(c.icon || '•') + '</span><b>' + VV.esc(VV.tr(c.name)) + '</b></a>';
+            return '<a class="m-cat" style="--t:' + (c.color || '#FF3D7F') + '" href="' + VV.catUrl(c) + '"><span>' + VV.esc(c.icon || '•') + '</span><b>' + VV.esc(VV.tr(c.name)) + '</b></a>';
           }).join('') + '</div>' +
           '<ul class="m-nav">' +
             menu.map(function (m) { return '<li><a href="' + VV.esc(m.url || '/shop') + '">' + VV.esc(VV.tr(m.label) || VV.t('products')) + VV.icon('chevron-right') + '</a></li>'; }).join('') +
@@ -465,7 +476,7 @@
         '<div class="footer-wave" aria-hidden="true">' + COLORS.map(function (col, i) { return '<i style="--c:' + col + ';--i:' + i + '"></i>'; }).join('') + '</div>' +
         '<div class="wrap footer-grid">' +
           '<div class="footer-brand">' + logo('logo-word--light') + '<p>' + VV.esc(VV.tr(s.site.tagline)) + '</p><p class="muted-l">' + VV.t('made') + '</p><div class="socs">' + soc + '</div></div>' +
-          '<div><h4>' + VV.t('f_shop') + '</h4><ul>' + VV.topCats().map(function (t) { return '<li><a href="/shop?cat=' + t.id + '">' + VV.esc(VV.tr(t.name)) + '</a></li>'; }).join('') + '<li><a href="/shop?sale=1">' + VV.t('sale') + '</a></li></ul></div>' +
+          '<div><h4>' + VV.t('f_shop') + '</h4><ul>' + VV.topCats().map(function (t) { return '<li><a href="' + VV.catUrl(t) + '">' + VV.esc(VV.tr(t.name)) + '</a></li>'; }).join('') + '<li><a href="/shop?sale=1">' + VV.t('sale') + '</a></li></ul></div>' +
           '<div><h4>' + VV.t('f_help') + '</h4><ul><li><a href="/delivery">' + VV.t('delivery') + '</a></li><li><a href="/about">' + VV.t('about') + '</a></li><li><a href="/news">' + VV.t('news') + '</a></li><li><a href="/contact">' + VV.t('contact') + '</a></li><li><a href="/terms">' + VV.t('terms') + '</a></li></ul></div>' +
           '<div><h4>' + VV.t('contact') + '</h4><ul class="footer-contact">' +
             (c.phone ? '<li>' + VV.icon('phone', 'icon--sm') + '<a href="tel:' + VV.esc(c.phone.replace(/\s/g, '')) + '">' + VV.esc(c.phone) + '</a></li>' : '') +

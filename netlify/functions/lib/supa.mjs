@@ -95,7 +95,7 @@ export async function libraCatalog(extras = {}, looks = {}) {
       color: lk.color || (auto ? auto[1] : PALETTE[i % PALETTE.length]),
       icon: lk.icon ?? (auto ? auto[2] : ''),
       image: lk.image || (isTop ? (auto ? auto[3] : PHOTOS[i % PHOTOS.length]) : ''),
-      hidden: !!lk.hidden, sort: lk.sort ?? c.sort ?? 0,
+      hidden: !!lk.hidden, sort: lk.sort ?? c.sort ?? 0, slug: lk.slug || '',
     };
   });
 
@@ -111,7 +111,7 @@ export async function libraCatalog(extras = {}, looks = {}) {
       details: x.details || { ka: '', en: '' },
       variants: '', age: x.age || '',
       stock: p.in_stock ? null : 0,
-      hot: !!x.hot, isNew: !!x.isNew, hidden: !!x.hidden, sort: x.sort || 0,
+      hot: !!x.hot, isNew: !!x.isNew, hidden: !!x.hidden, sort: x.sort || 0, cats: Array.isArray(x.cats) ? x.cats : [],
       popularity: p.popularity || 0, cashback: p.allow_cashback !== false,
       images: [p.image_url, ...(x.images || [])].filter(Boolean),
       created: String(p.updated_at || '').slice(0, 10),

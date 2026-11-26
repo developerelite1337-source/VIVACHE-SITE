@@ -7,7 +7,7 @@ import { getStore } from '@netlify/blobs';
 import { seed } from './seed.mjs';
 
 // extras = site-only fields for Libra products {id: {...}}, looks = appearance of Libra categories {id: {...}}
-export const COLLECTIONS = ['settings', 'categories', 'brands', 'products', 'news', 'hero', 'pages', 'extras', 'looks'];
+export const COLLECTIONS = ['settings', 'categories', 'brands', 'products', 'news', 'hero', 'pages', 'extras', 'looks', 'sitecats'];
 const OBJECT_COLLS = ['settings', 'pages', 'extras', 'looks'];
 
 export const store = () => getStore({ name: 'vivace', consistency: 'strong' });

@@ -21,6 +21,7 @@
 //   GET/PATCH/DELETE /api/admin/orders[/:id]
 //   POST   /api/admin/upload                raw image → { url }
 //   GET    /api/admin/export · POST /api/admin/import
+import * as cats from './lib/cats.mjs';
 import { purgeCache } from '@netlify/functions';
 import * as db from './lib/db.mjs';
 import * as supa from './lib/supa.mjs';
@@ -63,11 +64,12 @@ export default async (req, context) => {
 /* ============================== data (both modes) ============================== */
 
 async function load(all = false) {
-  const d = await db.getMany(['settings', 'categories', 'brands', 'products', 'news', 'hero', 'pages', 'extras', 'looks']);
+  const d = await db.getMany(['settings', 'categories', 'brands', 'products', 'news', 'hero', 'pages', 'extras', 'looks', 'sitecats']);
   if (supa.supaOn()) {
     try {
       const L = await supa.libraCatalog(d.extras, d.looks);
-      d.categories = L.categories; d.products = L.products; d.settings = supa.applyShop(d.settings, L.shop);
+      d.categories = [...L.categories, ...cats.siteCats(d.sitecats)]; d.products = L.products;
+      d.settings = supa.applyShop(d.settings, L.shop);
     } catch (e) {
       console.error('libra catalogue', e);
       d.libraError = e.message || String(e);
@@ -75,6 +77,7 @@ async function load(all = false) {
     }
   }
   d.settings.auth = supa.supaOn();
+  d.categories = cats.finalize(d.categories, d.products);    // same name = one category; Latin addresses
   if (!all) {
     d.categories = d.categories.filter((c) => !c.hidden);
     d.products = d.products.filter((p) => !p.hidden);
@@ -339,8 +342,33 @@ async function admin(req, m, p, url) {
   }
 
   // LIBRA mode: products & categories belong to Libra — the site stores only extras / appearance
+  if (libra && a === 'categories' && (m === 'POST' && !b || (b && b.startsWith('s-')))) {
+    const list = await db.get('sitecats');
+    if (m === 'POST') {
+      const x = await body(req);
+      const item = siteCategory(x, null);
+      list.push(item); await db.put('sitecats', list); await purge();
+      return json(item, 201);
+    }
+    const i = list.findIndex((c) => c.id === b);
+    if (i < 0) throw new HttpError(404, 'ვერ მოიძებნა');
+    if (m === 'DELETE') {
+      const gone = list.splice(i, 1)[0];
+      list.forEach((c) => { if (c.parent === gone.id) c.parent = gone.parent || null; });
+      const ex = await db.get('extras');
+      Object.values(ex).forEach((x) => { if (Array.isArray(x.cats)) x.cats = x.cats.filter((id) => id !== gone.id); });
+      await db.put('extras', ex); await db.put('sitecats', list); await purge();
+      return json({ ok: true });
+    }
+    if (m !== 'PUT' && m !== 'PATCH') throw new HttpError(405, 'method');
+    const x = await body(req);
+    list[i] = siteCategory(m === 'PATCH' ? { ...list[i], ...x } : x, list[i]);
+    await db.put('sitecats', list); await purge();
+    return json(list[i]);
+  }
   if (libra && (a === 'products' || a === 'categories')) {
     const store = a === 'products' ? 'extras' : 'looks';
+    if (a === 'categories' && m === 'DELETE') throw new HttpError(409, 'ეს კატეგორია LIBRA FINANCE-დან მოდის — წაშალე Libra-ში, ან აქ მონიშნე „დამალვა“.');
     if (!b || b === 'order' || m === 'POST' || m === 'DELETE') throw new HttpError(409, LIBRA_MSG);
     if (m !== 'PUT' && m !== 'PATCH') throw new HttpError(405, 'method');
     const map = await db.get(store);
@@ -350,7 +378,11 @@ async function admin(req, m, p, url) {
     await db.put(store, map); await purge();
     const fresh = await load(true);
     const item = fresh[a].find((y) => y.id === b);
-    if (!item) throw new HttpError(404, 'ვერ მოიძებნა (Libra-ში წაშლილია?)');
+    if (!item) {                                       // შერწყმული (იგივე სახელის) კატეგორია — ჩანაწერი შენახულია
+      const merged = fresh[a].find((y) => (y.merged || []).includes(b));
+      if (merged) return json(merged);
+      throw new HttpError(404, 'ვერ მოიძებნა (Libra-ში წაშლილია?)');
+    }
     return json(item);
   }
 
@@ -394,12 +426,22 @@ function productExtras(x) {
     description: trHtml(x.description), details: trHtml(x.details),
     // the first image of a Libra product is Libra's photo — keep only the extra ones
     images: imgs(x.images).filter((s) => !/\/storage\/v1\/object\/public\/products\//.test(s)),
+    cats: (Array.isArray(x.cats) ? x.cats : []).map((c) => str(c, 80)).filter(Boolean).slice(0, 20),
+  };
+}
+function siteCategory(x, prev) {
+  const name = tr(x.name, 120);
+  if (!name.ka && !name.en) throw new HttpError(422, 'კატეგორიის სახელი სავალდებულოა');
+  return {
+    id: prev?.id || 's-' + uid('c').slice(1), name, parent: str(x.parent, 80) || null,
+    tagline: tr(x.tagline, 200), color: isColor(x.color) ? x.color : '', icon: str(x.icon, 8), image: str(x.image, 400),
+    slug: cats.slugify(x.slug || ''), hidden: bool(x.hidden), sort: int(x.sort, 0),
   };
 }
 function categoryLook(x) {
   return {
     name_en: str(x.name?.en ?? x.name_en, 120), tagline: tr(x.tagline, 200), color: isColor(x.color) ? x.color : '',
-    icon: str(x.icon, 8), image: str(x.image, 400), hidden: bool(x.hidden),
+    icon: str(x.icon, 8), image: str(x.image, 400), hidden: bool(x.hidden), slug: cats.slugify(x.slug || ''),
     ...(x.sort !== undefined && x.sort !== '' ? { sort: int(x.sort, 0) } : {}),
   };
 }
@@ -420,6 +462,7 @@ function normalize(coll, x, prev, list) {
         stock: x.stock === '' || x.stock == null ? null : int(x.stock, 0),
         hot: bool(x.hot), isNew: bool(x.isNew), hidden: bool(x.hidden), sort: int(x.sort, 0),
         images: imgs(x.images), created: prev?.created || new Date().toISOString().slice(0, 10), updated: new Date().toISOString(),
+        cats: (Array.isArray(x.cats) ? x.cats : []).map((c) => str(c, 80)).filter(Boolean).slice(0, 20),
       };
     }
     case 'news': {
@@ -439,6 +482,7 @@ function normalize(coll, x, prev, list) {
       return {
         id, parent, name, tagline: tr(x.tagline, 200), color: isColor(x.color) ? x.color : '',
         icon: str(x.icon, 8), image: str(x.image, 400), hidden: bool(x.hidden), sort: int(x.sort, prev?.sort || list.length + 1),
+        slug: cats.slugify(x.slug || ''),
       };
     }
     case 'brands': {
