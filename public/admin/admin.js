@@ -514,13 +514,14 @@
   }
 
   /* ---------- brands ---------- */
+  const bslug = (x) => String(x || '').toLowerCase().trim().replace(/[ა-ჰ]/g, (ch) => ({ ა: 'a', ბ: 'b', გ: 'g', დ: 'd', ე: 'e', ვ: 'v', ზ: 'z', თ: 't', ი: 'i', კ: 'k', ლ: 'l', მ: 'm', ნ: 'n', ო: 'o', პ: 'p', ჟ: 'zh', რ: 'r', ს: 's', ტ: 't', უ: 'u', ფ: 'p', ქ: 'k', ღ: 'gh', ყ: 'k', შ: 'sh', ჩ: 'ch', ც: 'ts', ძ: 'dz', წ: 'ts', ჭ: 'ch', ხ: 'kh', ჯ: 'j', ჰ: 'h' }[ch] || '')).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   V.brands = () => {
     const list = [...D().brands].sort((a, b) => (a.sort || 0) - (b.sort || 0));
     return {
       title: 'ბრენდები', actions: `<a class="ad-btn ad-btn--accent" href="#/brands/new">${icon('plus')} ახალი ბრენდი</a>`,
       html: `<p class="ad-hint" style="margin:0 0 14px;font-size:14px">ბრენდები მოძრავ ზოლში ჩანს მთავარ გვერდზე. ლოგო არ არის — ჩანს სახელი ბრენდის ფერით. გადაათრიე <b>⋮⋮</b> რიგითობისთვის.</p>
         <div class="ad-list" data-sort-brands>${list.map((b) => `<article class="ad-row" data-id="${esc(b.id)}"><span class="ad-handle">⋮⋮</span><span class="ad-brand-swatch" style="--c:${esc(b.color)}">${b.logo ? `<img src="${esc(b.logo)}" alt="">` : esc(b.name)}</span>
-          <div class="ad-row__body"><a class="ad-strong" href="#/brands/${esc(b.id)}">${esc(b.name)}</a><small class="muted">${D().products.filter((p) => p.brand === b.name).length} პროდუქტი</small></div><a class="ad-btn ad-btn--sm" href="#/brands/${esc(b.id)}">რედაქტირება</a></article>`).join('') || `<div class="ad-empty"><p>ბრენდები ჯერ არ არის.</p></div>`}</div>`,
+          <div class="ad-row__body"><a class="ad-strong" href="#/brands/${esc(b.id)}">${esc(b.name)}</a><small class="muted">${D().products.filter((p) => bslug(p.brand) === bslug(b.name)).length} პროდუქტი · <a class="ad-link" href="/shop?brand=${esc(bslug(b.name))}" target="_blank">/shop?brand=${esc(bslug(b.name))}</a></small></div><a class="ad-btn ad-btn--sm" href="#/brands/${esc(b.id)}">რედაქტირება</a></article>`).join('') || `<div class="ad-empty"><p>ბრენდები ჯერ არ არის.</p></div>`}</div>`,
       mount(el) { sortableList($('[data-sort-brands]', el), 'brands'); },
     };
   };
@@ -1165,7 +1166,9 @@ const COVER_IMGS = [['shop', 'მაღაზია'], ['news', 'სიახლ
           <section class="ad-card"><h3>ნიშნები</h3>${sw('hot', 'რჩეული ★ (მთავარ გვერდზე)', p.hot)}${sw('isNew', '„ახალი“ ნიშანი', p.isNew)}${sw('hidden', 'საიტზე დამალვა', p.hidden)}
             <div class="ad-row2">${field('age', 'ასაკი', p.age, { ph: '3+' })}${field('sort', 'რიგითობა', p.sort ?? 0, { type: 'number' })}</div></section>
           <section class="ad-card"><h3>ასევე ჩანდეს კატეგორიებში</h3><p class="ad-hint" style="margin:-6px 0 10px">მაგ. „აუთლეტი“, „ეს საინტერესოა“ — პროდუქტი თავის კატეგორიაშიც დარჩება.</p>
-            <div data-ignore class="ad-catpick">${catTree().filter(([cid]) => cid !== p.category_id).map(([cid, n, d]) => `<label class="ad-check"><input type="checkbox" data-extra-cat value="${esc(cid)}"${(p.cats || []).includes(cid) ? ' checked' : ''}> <span>${'— '.repeat(d)}${esc(n)}</span></label>`).join('') || '<p class="ad-hint">ჯერ შექმენი კატეგორია.</p>'}</div>
+            <div data-ignore class="ad-catpick">${catTree().map(([cid, n, d]) => cid === p.category_id
+              ? `<label class="ad-check" title="მთავარი კატეგორია — LIBRA-დან"><input type="checkbox" checked disabled> <span>${'— '.repeat(d)}${esc(n)} <small class="muted">(მთავარი)</small></span></label>`
+              : `<label class="ad-check"><input type="checkbox" data-extra-cat value="${esc(cid)}"${(p.cats || []).includes(cid) ? ' checked' : ''}> <span>${'— '.repeat(d)}${esc(n)}</span></label>`).join('') || '<p class="ad-hint">ჯერ შექმენი კატეგორია.</p>'}</div>
             <a class="ad-link" href="#/categories/new">+ ახალი კატეგორია</a></section>
           <section class="ad-card"><h3>ფოტოები</h3>${p.images[0] ? `<figure class="ad-img ad-img--libra"><img src="${esc(p.images[0])}" alt=""></figure><p class="ad-hint" style="margin:0 0 10px">მთავარი ფოტო — LIBRA-დან. ქვემოთ დაამატე დამატებითი.</p>` : '<p class="ad-hint">Libra-ში ფოტო არ აქვს — დაამატე Libra-ში ან აქ.</p>'}${imagesField('images', extra)}</section>
         </aside></form>`,

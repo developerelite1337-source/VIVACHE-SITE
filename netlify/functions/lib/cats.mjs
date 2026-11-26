@@ -14,16 +14,36 @@ export function slugify(s) {
 }
 
 const norm = (s) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+// თემატიკით: ფერი, ემოჯი, ფოტო — ახალი კატეგორია ავტომატურად იღებს (ადმინში ყველაფერი იცვლება)
+const P = (n) => `/assets/img/photos/${n}.webp`, C = (n) => `/assets/img/covers/${n}.webp`;
+export const LOOKS = [
+  [/აუთლეტ|outlet|ფასდაკლ|sale|აქცი|ლიკვიდ/i, '#E11D48', '🏷️', C('news')],
+  [/ზღაპ|ამბ|საინტერეს|გამოცან|თავსატეხ|გასართ|ცოდნ|fun|fairy|puzzle|riddle/i, '#F59E0B', '🧩', C('interesting')],
+  [/საკანცელარ|კანცელარ|stationery|კალამ|ფანქ|რვეულ|ბლოკნოტ/i, '#2F6BFF', '✏️', P('stationery')],
+  [/სასკოლ|სკოლ|school|ჩანთ|პენალ/i, '#22C55E', '🎒', P('stationery')],
+  [/წიგნ|book|ლიტერატ|სახელმძღვ/i, '#8B5CF6', '📚', P('books')],
+  [/სათამაშ|თამაშ|toy|კონსტრუქ|ბავშვ|kids/i, '#FFB020', '🧸', P('toys')],
+  [/საჩუქ|სასაჩუქ|gift|სუვენ|ნაკრებ/i, '#FF3D7F', '🎁', P('gifts')],
+  [/ახალწ|ახალი წ|საახალწლო|new ?year|christmas|ნაძვ|შობ/i, '#E11D48', '🎄', P('newyear')],
+  [/ხატვ|ხელოვ|ფერ|art|საღებ|ხელსაქმ|craft/i, '#14B8A6', '🎨', P('stationery')],
+  [/ოფის|office|ქაღალდ|paper|პრინტ/i, '#0EA5E9', '🗂️', C('terms')],
+];
+export const PALETTE = ['#2F6BFF', '#8B5CF6', '#FF3D7F', '#FFB020', '#22C55E', '#14B8A6', '#F97316', '#E11D48'];
+export function autoLook(name, i = 0) {
+  const a = LOOKS.find(([re]) => re.test(name || ''));
+  return a ? { color: a[1], icon: a[2], image: a[3] } : { color: PALETTE[i % PALETTE.length], icon: '✨', image: C('shop') };
+}
 const nameOf = (c) => norm((c.name && (c.name.ka || c.name.en)) || '');
 
 /** site categories (Blobs „sitecats“) → the common category shape */
 export function siteCats(list) {
-  return (list || []).map((c) => ({
+  return (list || []).map((c, i) => { const au = autoLook(c.name?.ka || c.name?.en, i); return {
     id: c.id, site: true, libra: false, parent: c.parent || null,
     name: { ka: c.name?.ka || '', en: c.name?.en || '' }, tagline: c.tagline || { ka: '', en: '' },
-    color: c.color || '', icon: c.icon || '', image: c.image || '', slug: c.slug || '',
+    color: c.color || au.color, icon: c.icon || au.icon, image: c.image || (c.parent ? '' : au.image), slug: c.slug || '',
     hidden: !!c.hidden, sort: c.sort ?? 0,
-  }));
+  }; });
 }
 
 /**
@@ -50,7 +70,7 @@ export function finalize(categories, products) {
     alias[c.id] = k.id;
     (k.merged ||= []).push(c.id);
     if (c.site) {                                    // the site's settings win over LIBRA's automatic look
-      for (const f of ['color', 'icon', 'image', 'slug']) if (c[f]) k[f] = c[f];
+      for (const f of ['color', 'icon', 'image', 'slug']) if (c[f] && (f === 'slug' || !c.explicit || c.explicit[f])) k[f] = c[f];
       if (c.tagline && (c.tagline.ka || c.tagline.en)) k.tagline = c.tagline;
       if (c.name.en && !k.name.en) k.name = { ...k.name, en: c.name.en };
       if (c.hidden) k.hidden = true;

@@ -2,6 +2,7 @@
 //   Libra → Supabase: categories, products (price, stock, photo), shop_settings (shop, delivery, payment, guest_orders), customers
 //   Site  → Supabase: orders (vv_place_order) which Libra downloads every minute; accounts (Supabase Auth + vv_* functions)
 // Configure with env SUPABASE_URL + SUPABASE_ANON_KEY (public key). Optional SUPABASE_SERVICE_KEY: admin can view site orders.
+import { LOOKS, PALETTE } from './cats.mjs';
 import { env } from './auth.mjs';
 import { HttpError } from './util.mjs';
 
@@ -58,17 +59,7 @@ async function all(table, query) {
 
 /* ---------------- catalogue from Libra ---------------- */
 
-// default appearance for Libra categories by name (the admin can override everything)
-const LOOKS = [
-  [/საკანცელარ|კანცელარ|stationery/i, '#2F6BFF', '✏️', '/assets/img/photos/stationery.webp'],
-  [/სასკოლ|სკოლ|school|ჩანთ|პენალ/i, '#22C55E', '🎒', '/assets/img/photos/stationery.webp'],
-  [/წიგნ|book|ლიტერატ/i, '#8B5CF6', '📚', '/assets/img/photos/books.webp'],
-  [/სათამაშ|თამაშ|toy|კონსტრუქ/i, '#FFB020', '🧸', '/assets/img/photos/toys.webp'],
-  [/საჩუქ|სასაჩუქ|gift|სუვენ/i, '#FF3D7F', '🎁', '/assets/img/photos/gifts.webp'],
-  [/ახალწ|ახალი წ|საახალწლო|new ?year|christmas|ნაძვ/i, '#E11D48', '🎄', '/assets/img/photos/newyear.webp'],
-  [/ხატვ|ხელოვ|ფერ|art|საღებ/i, '#14B8A6', '🎨', '/assets/img/photos/stationery.webp'],
-];
-const PALETTE = ['#2F6BFF', '#8B5CF6', '#FF3D7F', '#FFB020', '#22C55E', '#14B8A6', '#F97316', '#E11D48'];
+// default appearance for Libra categories by theme — shared with site categories (lib/cats.mjs)
 const PHOTOS = ['stationery', 'books', 'gifts', 'toys', 'newyear'].map((n) => `/assets/img/photos/${n}.webp`);
 
 const textToHtml = (s) => String(s || '').trim() ? String(s).trim().split(/\n{2,}/).map((p) => '<p>' + p.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(/\n/g, '<br>') + '</p>').join('') : '';

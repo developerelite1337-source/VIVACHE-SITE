@@ -68,7 +68,10 @@ async function load(all = false) {
   if (supa.supaOn()) {
     try {
       const L = await supa.libraCatalog(d.extras, d.looks);
-      d.categories = [...L.categories, ...cats.siteCats(d.sitecats)]; d.products = L.products;
+      d.categories = [...L.categories, ...cats.siteCats(d.sitecats).map((c, i) => {
+        const raw = d.sitecats[i] || {};                     // ავტომატური იერსახე LIBRA-ს კატეგორიას არ გადაეწერება
+        return { ...c, explicit: { color: !!raw.color, icon: !!raw.icon, image: !!raw.image } };
+      })]; d.products = L.products;
       d.settings = supa.applyShop(d.settings, L.shop);
     } catch (e) {
       console.error('libra catalogue', e);

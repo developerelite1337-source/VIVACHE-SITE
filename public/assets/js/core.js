@@ -63,6 +63,16 @@
     return list.find(function (c) { return c.id === id; }) || list.find(function (c) { return c.slug === id; })
       || list.find(function (c) { return (c.merged || []).indexOf(id) > -1; }) || null;
   };
+  // ბრენდი: ლათინური მისამართი სახელიდან (Palitra L → palitra-l); რეგისტრი/სივრცეები არ აქვს მნიშვნელობა
+  var KA = { 'ა': 'a', 'ბ': 'b', 'გ': 'g', 'დ': 'd', 'ე': 'e', 'ვ': 'v', 'ზ': 'z', 'თ': 't', 'ი': 'i', 'კ': 'k', 'ლ': 'l', 'მ': 'm', 'ნ': 'n', 'ო': 'o', 'პ': 'p', 'ჟ': 'zh', 'რ': 'r', 'ს': 's', 'ტ': 't', 'უ': 'u', 'ფ': 'p', 'ქ': 'k', 'ღ': 'gh', 'ყ': 'k', 'შ': 'sh', 'ჩ': 'ch', 'ც': 'ts', 'ძ': 'dz', 'წ': 'ts', 'ჭ': 'ch', 'ხ': 'kh', 'ჯ': 'j', 'ჰ': 'h' };
+  VV.slug = function (s) { return String(s || '').toLowerCase().trim().replace(/[ა-ჰ]/g, function (ch) { return KA[ch] || ''; }).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); };
+  VV.brandUrl = function (name) { return '/shop?brand=' + encodeURIComponent(VV.slug(name) || name); };
+  VV.brandOf = function (key) {                       // მისამართიდან/სახელიდან → { name, logo, color }
+    var k = VV.slug(key); if (!k) return null;
+    var reg = (VV.data.brands || []).find(function (b) { return VV.slug(b.name) === k; });
+    var p = reg ? null : (VV.data.products || []).find(function (x) { return x.brand && VV.slug(x.brand) === k; });
+    return reg || (p ? { name: p.brand } : { name: key });
+  };
   VV.catUrl = function (c) { c = typeof c === 'string' ? VV.cat(c) : c; return c ? '/shop?cat=' + encodeURIComponent(c.slug || c.id) : '/shop'; };
   VV.topCats = function () {
     return VV.data.categories.filter(function (c) { return !c.parent; }).sort(function (a, b) { return (a.sort || 0) - (b.sort || 0); });
@@ -125,7 +135,7 @@
         (VV.img(p) ? '<img src="' + VV.esc(VV.img(p)) + '" alt="' + name + '" loading="lazy" decoding="async">' : '<span class="ph">' + VV.icon('gift', 'icon--lg') + '<small>' + VV.t('no_photo') + '</small></span>') +
         '<span class="p-card__badges">' + badges + '</span></div>' +
       '<div class="p-card__body">' +
-        (p.brand ? '<span class="p-card__brand">' + VV.esc(p.brand) + '</span>' : (VV.cat(p.category_id) ? '<span class="p-card__brand">' + VV.esc(VV.tr(VV.cat(p.category_id).name)) + '</span>' : '')) +
+        (p.brand ? '<a class="p-card__brand p-card__brand--link" href="' + VV.brandUrl(p.brand) + '">' + VV.esc(p.brand) + '</a>' : (VV.cat(p.category_id) ? '<span class="p-card__brand">' + VV.esc(VV.tr(VV.cat(p.category_id).name)) + '</span>' : '')) +
         '<h3 class="p-card__title"><a class="p-card__link" href="' + VV.productUrl(p) + '">' + name + '</a></h3>' +
         '<div class="p-card__foot">' +
           (p.price ? '<span class="p-card__price">' + (d ? '<s>' + VV.money(p.old_price) + '</s>' : '') + price + '</span>' : '<span class="status status--ask">' + VV.t('price_on_request') + '</span>') +

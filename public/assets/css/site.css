@@ -1184,3 +1184,7 @@ html.ny .ny-music { background: linear-gradient(135deg, #DC2626, #16A34A); }
 .cab-step b { font-size: 13px; }
 .cab-step small { opacity: .85; }
 .cab-step.is-on { background: var(--c); border-color: #fff; color: #fff; box-shadow: 0 6px 16px -8px rgba(0,0,0,.5); }
+
+/* clickable brand on product cards */
+.p-card__brand--link { position: relative; z-index: 3; text-decoration: none; }
+.p-card__brand--link:hover { text-decoration: underline; text-underline-offset: 3px; }

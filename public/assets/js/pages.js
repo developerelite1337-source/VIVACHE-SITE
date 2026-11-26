@@ -342,7 +342,7 @@
   function brandsHtml(sec) {
     var set = '<div class="brands__set">' + VV.data.brands.map(function (b) {
       var inner = b.logo ? '<img src="' + e(b.logo) + '" alt="' + e(b.name) + '" draggable="false">' : '<span>' + e(b.name) + '</span>';
-      return '<a class="brand-pill" style="--t:' + (b.color || '#15171A') + '" href="/shop?brand=' + encodeURIComponent(b.name) + '">' + inner + '</a>';
+      return '<a class="brand-pill" style="--t:' + (b.color || '#15171A') + '" href="' + VV.brandUrl(b.name) + '">' + inner + '</a>';
     }).join('') + '</div>';
     return '<section class="section--tight brands-sec"><div class="wrap"><h2 class="h-3 brands-sec__title" data-anim="reveal">' + e(sx(sec, 'title', VV.t('brands_title'))) + '</h2></div>' +
       '<div class="brands" data-mq data-track=".brands__row" data-speed="-36" data-hover-pause><div class="brands__row">' + set + set + set + set + '</div></div></section>';
@@ -352,7 +352,8 @@
   P.shop = function () {
     var D = VV.data, st = { cat: VV.qs('cat') || '', q: VV.qs('q') || '', brand: VV.qs('brand') || '', sale: VV.qs('sale') === '1', stock: false, sort: VV.qs('sort') || 'pop', min: '', max: '', limit: 12 };
     var cat = st.cat && VV.cat(st.cat), top = cat ? VV.topOf(cat.id) : null, color = cat ? VV.catColor(cat.id) : '#FF3D7F';
-    var title = cat ? VV.tr(cat.name) : st.sale ? VV.t('sale') : VV.t('products');
+    var brandInfo = st.brand ? VV.brandOf(st.brand) : null;
+    var title = cat ? VV.tr(cat.name) : brandInfo ? brandInfo.name : st.sale ? VV.t('sale') : VV.t('products');
     VV.setTitle(title);
     var crumbList = [[VV.t('products'), cat || st.sale ? '/shop' : '']];
     if (cat && top && top.id !== cat.id) crumbList.push([VV.tr(top.name), VV.catUrl(top)]);
@@ -375,7 +376,7 @@
           '<div class="side-block"><h4>' + VV.t('categories') + '</h4>' + tree + '</div>' +
           '<div class="side-block"><h4>' + VV.t('price') + '</h4><div class="price-range"><input type="number" min="0" placeholder="0" data-f="min" aria-label="min"><span>—</span><input type="number" min="0" placeholder="500" data-f="max" aria-label="max"></div></div>' +
           '<div class="side-block"><label class="switch"><input type="checkbox" data-f="sale"' + (st.sale ? ' checked' : '') + '><span></span>' + VV.t('only_sale') + '</label><label class="switch"><input type="checkbox" data-f="stock"><span></span>' + VV.t('only_stock') + '</label></div>' +
-          (brands.length ? '<div class="side-block"><h4>' + VV.t('brand') + '</h4><div class="brand-list">' + brands.map(function (b) { return '<label class="check"><input type="radio" name="brand" value="' + e(b) + '" data-f="brand"' + (st.brand === b ? ' checked' : '') + '><span>' + e(b) + '</span></label>'; }).join('') + '<label class="check"><input type="radio" name="brand" value="" data-f="brand"' + (!st.brand ? ' checked' : '') + '><span>' + VV.t('all') + '</span></label></div></div>' : '') +
+          (brands.length ? '<div class="side-block"><h4>' + VV.t('brand') + '</h4><div class="brand-list">' + brands.map(function (b) { return '<label class="check"><input type="radio" name="brand" value="' + e(b) + '" data-f="brand"' + (st.brand && VV.slug(st.brand) === VV.slug(b) ? ' checked' : '') + '><span>' + e(b) + '</span></label>'; }).join('') + '<label class="check"><input type="radio" name="brand" value="" data-f="brand"' + (!st.brand ? ' checked' : '') + '><span>' + VV.t('all') + '</span></label></div></div>' : '') +
         '</aside>' +
         '<div class="shop__main"><div class="toolbar"><div class="search-inline">' + I('search', 'icon--sm') + '<input type="search" value="' + e(st.q) + '" placeholder="' + VV.t('search_placeholder') + '" data-f="q" aria-label="' + VV.t('search') + '"></div>' +
           '<select class="select" data-f="sort" aria-label="' + VV.t('sort') + '"><option value="pop">' + VV.t('sort_pop') + '</option><option value="new">' + VV.t('sort_new') + '</option><option value="cheap">' + VV.t('sort_cheap') + '</option><option value="exp">' + VV.t('sort_exp') + '</option></select>' +
@@ -388,7 +389,7 @@
       if (reset) st.limit = 12;
       var list = D.products.filter(function (p) {
         if (st.cat && !VV.inCat(p, st.cat)) return false;
-        if (st.brand && p.brand !== st.brand) return false;
+        if (st.brand && VV.slug(p.brand) !== VV.slug(st.brand)) return false;
         if (st.sale && !VV.disc(p)) return false;
         if (st.stock && !VV.inStock(p)) return false;
         if (st.min !== '' && (p.price || 0) < +st.min) return false;
@@ -446,7 +447,7 @@
           (imgs.length > 1 ? '<div class="pd__thumbs">' + imgs.map(function (src, i) { return '<button type="button" class="' + (i ? '' : 'is-on') + '" data-src="' + e(src) + '"><img src="' + e(src) + '" alt=""></button>'; }).join('') + '</div>' : '') +
         '</div>' +
         '<div class="pd__info">' +
-          (p.brand ? '<a class="pd__brand" href="/shop?brand=' + encodeURIComponent(p.brand) + '" data-anim="intro">' + e(p.brand) + '</a>' : '') +
+          (p.brand ? '<a class="pd__brand" href="' + VV.brandUrl(p.brand) + '" data-anim="intro">' + e(p.brand) + '</a>' : '') +
           '<h1 class="pd__title" data-split="words">' + e(name) + '</h1>' +
           '<div class="pd__meta" data-anim="intro">' + stock + (p.age ? '<span class="chip">' + VV.t('age') + ': ' + e(p.age) + '</span>' : '') + (p.code ? '<span class="chip">' + VV.t('code') + ': ' + e(p.code) + '</span>' : '') + (p.unit ? '<span class="chip">' + VV.t('unit') + ': ' + e(p.unit) + '</span>' : '') + '</div>' +
           '<div class="pd__price" id="pd-price" data-anim="intro"></div>' +
